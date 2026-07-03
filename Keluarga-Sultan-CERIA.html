@@ -902,7 +902,14 @@ function viewTasks(){
   if(taskViewMode==='calendar') return head+modeToggle+chips+viewCalendar(list);
   if(!list.length) return head+modeToggle+chips+emptyBox('✅', personId?'No tasks yet':'No tasks here', personId?'This person has no tasks assigned yet.':'Tap + to assign a task to a teammate.');
   const singlePerson = !!personId || taskFilter==='mine';
-  return head+modeToggle+chips+(singlePerson ? list.map(t=>taskRow(t,{hidePic:true})).join('') : groupedTaskList(list));
+  if(singlePerson){
+    const pid = personId || state.currentUserId;
+    const open = list.filter(t=>t.status!=='done').length;
+    const solo = `<div class="task-group"><div class="task-group-head">${avatar(pid)}<b>${esc(member(pid)?.name||'?')}</b><span class="n">${open?open+' open':'all done ✓'}</span></div>
+      ${list.map(t=>taskRow(t,{hidePic:true,compact:true})).join('')}</div>`;
+    return head+modeToggle+chips+solo;
+  }
+  return head+modeToggle+chips+groupedTaskList(list);
 }
 function viewCalendar(list){
   const y=calMonth.getFullYear(), m=calMonth.getMonth();
