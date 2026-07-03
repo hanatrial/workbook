@@ -1663,7 +1663,7 @@ function storyCard(s){
       ${reactionBar(s)}
       ${c.length?`<div class="cmt-preview">${c.slice(-2).map(cm=>`<div class="cmt-preview-row"><b>${esc(member(cm.authorId)?.name.split(' ')[0]||'?')}</b> <span>${renderMentions(esc(cm.text))}</span></div>`).join('')}</div>`:''}
       <div class="photo-actions" style="margin-top:11px">
-        <button onclick="openStory('${s.id}')">💬 ${c.length>2?'Lihat semua '+c.length+' komentar':c.length?c.length+' komentar':'Komentar'}</button>
+        <button onclick="openStory('${s.id}')">💬 ${c.length>2?'View all '+c.length+' comments':c.length?c.length+' comments':'Comment'}</button>
       </div>
     </div>
   </div>`;
