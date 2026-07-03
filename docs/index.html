@@ -115,6 +115,13 @@
 
   /* ---------- Task list ---------- */
   .task{display:flex;gap:11px;align-items:flex-start;padding:13px;margin-bottom:11px}
+  .task-group{margin-bottom:16px}
+  .task-group-head{display:flex;align-items:center;gap:9px;padding:4px 6px 9px;cursor:pointer}
+  .task-group-head .av{width:26px;height:26px;font-size:10px}
+  .task-group-head b{font-family:var(--font-head);font-weight:600;font-size:14.5px;letter-spacing:-.01em}
+  .task-group-head .n{margin-left:auto;font-size:11px;font-weight:700;color:var(--muted);background:var(--sand);padding:2px 9px;border-radius:999px}
+  .task-group .task.compact{padding:10px 13px;margin-bottom:7px;margin-left:14px}
+  .task-group .task.compact .prio{width:3px}
   .task .prio{width:5px;align-self:stretch;border-radius:999px;flex:none}
   .task .tbody{flex:1;min-width:0}
   .task .ttop{display:flex;align-items:center;gap:8px;justify-content:space-between}
@@ -894,7 +901,8 @@ function viewTasks(){
   const modeToggle=`<div class="seg" style="margin-bottom:12px"><button type="button" class="${taskViewMode==='list'?'on':''}" onclick="taskViewMode='list';render()">List</button><button type="button" class="${taskViewMode==='calendar'?'on':''}" onclick="taskViewMode='calendar';render()">Calendar</button></div>`;
   if(taskViewMode==='calendar') return head+modeToggle+chips+viewCalendar(list);
   if(!list.length) return head+modeToggle+chips+emptyBox('✅', personId?'No tasks yet':'No tasks here', personId?'This person has no tasks assigned yet.':'Tap + to assign a task to a teammate.');
-  return head+modeToggle+chips+list.map(taskRow).join('');
+  const singlePerson = !!personId || taskFilter==='mine';
+  return head+modeToggle+chips+(singlePerson ? list.map(t=>taskRow(t,{hidePic:true})).join('') : groupedTaskList(list));
 }
 function viewCalendar(list){
   const y=calMonth.getFullYear(), m=calMonth.getMonth();
@@ -928,16 +936,36 @@ function openDayTasks(dateStr){
   const label=new Date(dateStr+'T00:00:00').toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'});
   sheet(label, tasks.map(taskRow).join('') || `<div style="color:var(--muted);font-size:13px">No tasks due this day.</div>`);
 }
-function taskRow(t){
+function groupedTaskList(list){
+  const groups={};
+  list.forEach(t=>{ (groups[t.picId]=groups[t.picId]||[]).push(t); });
+  const order={todo:0,doing:1,done:2};
+  const picIds=Object.keys(groups).sort((a,b)=>{
+    const openA=groups[a].filter(t=>t.status!=='done').length, openB=groups[b].filter(t=>t.status!=='done').length;
+    if(openB!==openA) return openB-openA;
+    return (member(a)?.name||'').localeCompare(member(b)?.name||'');
+  });
+  return picIds.map(pid=>{
+    const tasks=groups[pid].sort((a,b)=>(order[a.status]-order[b.status])||b.createdAt-a.createdAt);
+    const open=tasks.filter(t=>t.status!=='done').length;
+    return `<div class="task-group">
+      <div class="task-group-head" onclick="viewPersonTasks('${pid}')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'){this.click()}">
+        ${avatar(pid)}<b>${esc(member(pid)?.name||'?')}</b><span class="n">${open?open+' open':'all done ✓'}</span>
+      </div>
+      ${tasks.map(t=>taskRow(t,{hidePic:true,compact:true})).join('')}
+    </div>`;
+  }).join('');
+}
+function taskRow(t,opts={}){
   const st=STATUS[t.status], pr=PRIO[t.priority]||PRIO.med, du=dueState(t.due);
   const c=t.comments||[];
-  return `<div class="card task" onclick="openTask('${t.id}')">
+  return `<div class="card task${opts.compact?' compact':''}" onclick="openTask('${t.id}')">
     <div class="prio" style="background:${pr.c}"></div>
     <div class="tbody">
       <div class="ttop"><h4 style="${t.status==='done'?'text-decoration:line-through;opacity:.6':''}">${esc(t.title)}</h4></div>
       ${t.desc?`<div class="desc">${esc(t.desc)}</div>`:''}
       <div class="trow">
-        <span class="picwho">${avatar(t.picId)} ${esc(member(t.picId)?.name.split(' ')[0]||'—')}</span>
+        ${opts.hidePic?'':`<span class="picwho">${avatar(t.picId)} ${esc(member(t.picId)?.name.split(' ')[0]||'—')}</span>`}
         <span class="pill ${st.cls}">${st.t}</span>
         ${du?`<span class="pill ${du.cls}">${du.t}</span>`:''}
         ${t.checklist&&t.checklist.length?`<span class="pill todo">☑ ${t.checklist.filter(i=>i.done).length}/${t.checklist.length}</span>`:''}
