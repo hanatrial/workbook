@@ -997,6 +997,7 @@ function taskRow(t,opts={}){
         ${du?`<span class="pill ${du.cls}">${du.t}</span>`:''}
         ${t.checklist&&t.checklist.length?`<span class="pill todo">☑ ${t.checklist.filter(i=>i.done).length}/${t.checklist.length}</span>`:''}
         ${t.repeat&&t.repeat!=='none'?`<span class="pill todo">🔁 ${t.repeat==='weekly'?'Weekly':'Monthly'}</span>`:''}
+        ${t.link?`<span class="pill todo">🔗 Link</span>`:''}
         ${c.length?`<span class="pill todo">💬 ${c.length}</span>`:''}
       </div>
     </div>
@@ -1021,7 +1022,7 @@ function boardCard(t,key){
     : `<button onclick="event.stopPropagation();moveTask('${t.id}','doing')">↩ Reopen</button>`;
   const cl=t.checklist||[];
   return `<div class="card bcard" onclick="openTask('${t.id}')">
-    <h5 style="${key==='done'?'text-decoration:line-through;opacity:.6':''}"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${pr.c};margin-right:7px;vertical-align:middle" aria-hidden="true"></span>${esc(t.title)}${t.repeat&&t.repeat!=='none'?' 🔁':''}</h5>
+    <h5 style="${key==='done'?'text-decoration:line-through;opacity:.6':''}"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${pr.c};margin-right:7px;vertical-align:middle" aria-hidden="true"></span>${esc(t.title)}${t.repeat&&t.repeat!=='none'?' 🔁':''}${t.link?' 🔗':''}</h5>
     <span class="picwho">${avatar(t.picId)} ${esc(member(t.picId)?.name.split(' ')[0]||'—')}</span>
     ${cl.length?`<div style="font-size:11px;color:var(--muted);margin-top:4px">☑ ${cl.filter(i=>i.done).length}/${cl.length}</div>`:''}
     <div class="mv">${mv}</div>
@@ -1318,6 +1319,8 @@ function openTaskForm(){
     </div>
     <label class="f">Due date (optional)</label>
     <input class="in" type="date" id="tdue"/>
+    <label class="f">Link (optional)</label>
+    <input class="in" type="url" id="tlink" placeholder="https:// — Google Sheet, doc, photo album, etc."/>
     <label class="f">Repeat</label>
     <div class="seg" id="repeatSeg">
       <button type="button" class="on" onclick="segPick(this,'repeatSeg')" data-v="none">None</button>
@@ -1355,14 +1358,15 @@ function renderChecklistBuilder(){
   const el=$('#checklistBuilder'); if(!el) return;
   el.innerHTML = draftChecklist.length ? draftChecklist.map((it,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0"><span style="flex:1;font-size:14px">☐ ${esc(it.text)}</span><button type="button" onclick="draftChecklist.splice(${i},1);renderChecklistBuilder()" style="color:var(--muted);font-size:12px">Remove</button></div>`).join('') : '';
 }
+function normalizeUrl(u){ u=(u||'').trim(); if(!u) return null; if(!/^[a-z][a-z0-9+.-]*:\/\//i.test(u)) u='https://'+u; return u; }
 function saveTask(){
   const title=$('#ttitle').value.trim();
   if(!title) return toast('Add a task title');
   if(!pickedPics.size) return toast('Pick at least one PIC');
-  const due=$('#tdue').value||null, desc=$('#tdesc').value.trim(), repeat=pickedRepeat;
+  const due=$('#tdue').value||null, desc=$('#tdesc').value.trim(), repeat=pickedRepeat, link=normalizeUrl($('#tlink').value);
   pickedPics.forEach(pic=>{
     state.tasks.push({ id:uid(), title, desc, picId:pic, creatorId:state.currentUserId,
-      priority:pickedPrio, status:'todo', due, createdAt:Date.now(), repeat,
+      priority:pickedPrio, status:'todo', due, createdAt:Date.now(), repeat, link,
       photoId:taskPhotoLink||null, comments:[], checklist:draftChecklist.map(it=>({id:uid(),text:it.text,done:false})) });
   });
   const n=pickedPics.size;
@@ -1405,6 +1409,7 @@ function openTask(id){
       <div style="color:var(--muted);font-size:12px;margin-top:6px">Created by ${esc(member(t.creatorId)?.name||'—')} · ${timeAgo(t.createdAt)}${t.repeat&&t.repeat!=='none'?' · 🔁 Repeats '+t.repeat:''}</div>
     </div>
     ${linked?`<img class="detail-img" src="${linked.dataUrl}"/>`:''}
+    ${t.link?`<a class="btn ghost task-link-btn" href="${esc(t.link)}" target="_blank" rel="noopener noreferrer" style="margin-bottom:12px">🔗 Open link</a>`:''}
     ${renderChecklist(t)}
     <div class="seg" id="stSeg">
       <button onclick="setStatus('${t.id}','todo')" class="${t.status==='todo'?'on':''}">To Do</button>
@@ -1438,7 +1443,7 @@ function spawnNextOccurrence(t){
   if(t.repeat==='weekly') next.setDate(next.getDate()+7); else if(t.repeat==='monthly') next.setMonth(next.getMonth()+1);
   const nextDue=next.toISOString().slice(0,10);
   state.tasks.push({ id:uid(), title:t.title, desc:t.desc, picId:t.picId, creatorId:t.creatorId,
-    priority:t.priority, status:'todo', due:nextDue, createdAt:Date.now(), repeat:t.repeat,
+    priority:t.priority, status:'todo', due:nextDue, createdAt:Date.now(), repeat:t.repeat, link:t.link||null,
     photoId:null, comments:[], checklist:(t.checklist||[]).map(it=>({id:uid(),text:it.text,done:false})) });
   return nextDue;
 }
