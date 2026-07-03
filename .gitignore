@@ -1,0 +1,4 @@
+.claude/
+.impeccable/
+node_modules/
+hosting/firebase-debug.log
