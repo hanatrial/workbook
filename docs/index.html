@@ -1,4 +1,3 @@
-<!-- build 20260703b -->
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -596,6 +595,10 @@
   <button class="icon-btn" onclick="openSearch()" aria-label="Search">
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
   </button>
+  <button class="icon-btn" id="notifBtn" onclick="openNotifications()" aria-label="Notifications" style="position:relative">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+    <span id="notifDot" class="navdot" aria-hidden="true" style="position:absolute;top:6px;right:6px;display:none"></span>
+  </button>
   <button class="me-btn" onclick="openMePicker()">
     <span id="meAv"></span>
     <span id="meName">Set me</span>
@@ -847,11 +850,57 @@ function renderMe(){
   else{ $('#meAv').innerHTML='<span class="av" style="width:26px;height:26px;font-size:11px;background:rgba(255,255,255,.3)">?</span>'; $('#meName').textContent='Set me'; }
 }
 
+/* ---- Per-person notifications: task assigned to me, comment reply to me, @mention of me ---- */
+function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+function mentionsMe(text){
+  if(!text||!me()) return false;
+  const first=me().name.split(' ')[0];
+  return new RegExp('@(all|'+escapeRegExp(first)+')\\b','i').test(text);
+}
+function getNotifications(){
+  if(!state.currentUserId) return [];
+  const out=[];
+  (state.tasks||[]).forEach(t=>{
+    if(t.picId===state.currentUserId && t.creatorId!==state.currentUserId){
+      out.push({id:'task-'+t.id, createdAt:t.createdAt, icon:'✅', text:`${esc(member(t.creatorId)?.name.split(' ')[0]||'Someone')} assigned you a task: "${esc(t.title)}"`, open:()=>{closeSheet();go('tasks');openTask(t.id);}});
+    }
+  });
+  (state.stories||[]).forEach(s=>{
+    if(s.authorId!==state.currentUserId && mentionsMe(s.text)){
+      out.push({id:'story-'+s.id, createdAt:s.createdAt, icon:'💬', text:`${esc(member(s.authorId)?.name.split(' ')[0]||'Someone')} mentioned you in a Cerita`, open:()=>{closeSheet();openStory(s.id);}});
+    }
+    (s.comments||[]).forEach(c=>{
+      if(c.authorId===state.currentUserId) return;
+      const parent = c.replyToId ? s.comments.find(x=>x.id===c.replyToId) : null;
+      if(parent && parent.authorId===state.currentUserId){
+        out.push({id:'reply-'+c.id, createdAt:c.createdAt, icon:'↩️', text:`${esc(member(c.authorId)?.name.split(' ')[0]||'Someone')} replied to your comment`, open:()=>{closeSheet();openStory(s.id);}});
+      } else if(mentionsMe(c.text)){
+        out.push({id:'mention-'+c.id, createdAt:c.createdAt, icon:'💬', text:`${esc(member(c.authorId)?.name.split(' ')[0]||'Someone')} mentioned you in a comment`, open:()=>{closeSheet();openStory(s.id);}});
+      }
+    });
+  });
+  return out.sort((a,b)=>b.createdAt-a.createdAt);
+}
+function renderNotifBadge(){
+  const seen=(state.lastSeen&&state.lastSeen.notif)||0;
+  const unread=getNotifications().some(n=>n.createdAt>seen);
+  const dot=$('#notifDot'); if(dot) dot.style.display=unread?'block':'none';
+}
+let _notifList=[];
+function openNotifications(){
+  _notifList=getNotifications();
+  const body=!_notifList.length
+    ? `<div style="color:var(--muted);font-size:13px;padding:8px 0">No notifications yet.</div>`
+    : _notifList.map((n,i)=>`<button class="search-row" onclick="_notifList[${i}].open()"><span style="font-size:18px">${n.icon}</span><span style="flex:1;text-align:left">${n.text}<br><small style="color:var(--muted)">${timeAgo(n.createdAt)}</small></span></button>`).join('');
+  sheet('Notifications', body);
+  state.lastSeen=state.lastSeen||{cerita:0,tasks:0}; state.lastSeen.notif=Date.now(); persist(); renderNotifBadge();
+}
+
 /* ===================================================================== */
 /*                              VIEWS                                     */
 /* ===================================================================== */
 function render(){
-  renderNav(); renderMe();
+  renderNav(); renderMe(); renderNotifBadge();
   const app=$('#app');
   if(route==='cerita') app.innerHTML=viewStories();
   else if(route==='feed') app.innerHTML=viewFeed();
