@@ -49,6 +49,23 @@
   .me-btn .av{width:26px;height:26px;font-size:11px}
   .me-btn span{font-size:12px;font-weight:600;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
+  /* ---------- Notification popover (anchored under the bell, top-right) ---------- */
+  .notif-popover{
+    position:fixed;top:64px;right:12px;width:320px;max-width:calc(100vw - 24px);
+    background:var(--card,#fff);border-radius:16px;box-shadow:0 16px 40px rgba(15,23,42,.22);
+    z-index:120;max-height:min(70vh,420px);overflow:auto;display:none;
+    border:1px solid var(--line,#eee);
+  }
+  .notif-popover.show{display:block}
+  .notif-popover::before{
+    content:'';position:absolute;top:-6px;right:22px;width:12px;height:12px;
+    background:var(--card,#fff);border-left:1px solid var(--line,#eee);border-top:1px solid var(--line,#eee);
+    transform:rotate(45deg);
+  }
+  .notif-pop-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line,#eee);position:sticky;top:0;background:inherit;border-radius:16px 16px 0 0}
+  .notif-pop-head h3{margin:0;font-size:15px}
+  .notif-pop-body{padding:6px}
+
   /* ---------- Avatar ---------- */
   .av{
     border-radius:50%;display:inline-flex;align-items:center;justify-content:center;overflow:hidden;
@@ -595,7 +612,7 @@
   <button class="icon-btn" onclick="openSearch()" aria-label="Search">
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
   </button>
-  <button class="icon-btn" id="notifBtn" onclick="openNotifications()" aria-label="Notifications" style="position:relative">
+  <button class="icon-btn" id="notifBtn" onclick="openNotifications(event)" aria-label="Notifications" style="position:relative">
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
     <span id="notifDot" class="navdot" aria-hidden="true" style="position:absolute;top:6px;right:6px;display:none"></span>
   </button>
@@ -618,6 +635,7 @@
 
 <!-- ============ MODAL ROOT ============ -->
 <div id="modalRoot"></div>
+<div id="notifPanel" class="notif-popover"></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -808,7 +826,7 @@ let feedFilter = 'all';      // photos: all | mine
 let taskFilter = 'all';      // tasks: all | mine | todo | doing | done | person:<id>
 let taskViewMode = 'list';   // tasks: list | calendar
 let calMonth = (()=>{ const d=new Date(); d.setDate(1); d.setHours(0,0,0,0); return d; })();
-function go(r){ route=r; render(); window.scrollTo(0,0); }
+function go(r){ route=r; closeNotifPanel(); render(); window.scrollTo(0,0); }
 
 const NAV = [
   {id:'cerita',label:'Cerita', svg:'story'},
@@ -862,20 +880,20 @@ function getNotifications(){
   const out=[];
   (state.tasks||[]).forEach(t=>{
     if(t.picId===state.currentUserId && t.creatorId!==state.currentUserId){
-      out.push({id:'task-'+t.id, createdAt:t.createdAt, icon:'✅', text:`${esc(member(t.creatorId)?.name.split(' ')[0]||'Someone')} assigned you a task: "${esc(t.title)}"`, open:()=>{closeSheet();go('tasks');openTask(t.id);}});
+      out.push({id:'task-'+t.id, createdAt:t.createdAt, icon:'✅', text:`${esc(member(t.creatorId)?.name.split(' ')[0]||'Someone')} assigned you a task: "${esc(t.title)}"`, open:()=>{closeNotifPanel();go('tasks');openTask(t.id);}});
     }
   });
   (state.stories||[]).forEach(s=>{
     if(s.authorId!==state.currentUserId && mentionsMe(s.text)){
-      out.push({id:'story-'+s.id, createdAt:s.createdAt, icon:'💬', text:`${esc(member(s.authorId)?.name.split(' ')[0]||'Someone')} mentioned you in a Cerita`, open:()=>{closeSheet();openStory(s.id);}});
+      out.push({id:'story-'+s.id, createdAt:s.createdAt, icon:'💬', text:`${esc(member(s.authorId)?.name.split(' ')[0]||'Someone')} mentioned you in a Cerita`, open:()=>{closeNotifPanel();openStory(s.id);}});
     }
     (s.comments||[]).forEach(c=>{
       if(c.authorId===state.currentUserId) return;
       const parent = c.replyToId ? s.comments.find(x=>x.id===c.replyToId) : null;
       if(parent && parent.authorId===state.currentUserId){
-        out.push({id:'reply-'+c.id, createdAt:c.createdAt, icon:'↩️', text:`${esc(member(c.authorId)?.name.split(' ')[0]||'Someone')} replied to your comment`, open:()=>{closeSheet();openStory(s.id);}});
+        out.push({id:'reply-'+c.id, createdAt:c.createdAt, icon:'↩️', text:`${esc(member(c.authorId)?.name.split(' ')[0]||'Someone')} replied to your comment`, open:()=>{closeNotifPanel();openStory(s.id);}});
       } else if(mentionsMe(c.text)){
-        out.push({id:'mention-'+c.id, createdAt:c.createdAt, icon:'💬', text:`${esc(member(c.authorId)?.name.split(' ')[0]||'Someone')} mentioned you in a comment`, open:()=>{closeSheet();openStory(s.id);}});
+        out.push({id:'mention-'+c.id, createdAt:c.createdAt, icon:'💬', text:`${esc(member(c.authorId)?.name.split(' ')[0]||'Someone')} mentioned you in a comment`, open:()=>{closeNotifPanel();openStory(s.id);}});
       }
     });
   });
@@ -887,13 +905,26 @@ function renderNotifBadge(){
   const dot=$('#notifDot'); if(dot) dot.style.display=unread?'block':'none';
 }
 let _notifList=[];
-function openNotifications(){
+function openNotifications(e){
+  if(e) e.stopPropagation();
+  const panel=$('#notifPanel');
+  if(panel.classList.contains('show')){ closeNotifPanel(); return; }
   _notifList=getNotifications();
   const body=!_notifList.length
-    ? `<div style="color:var(--muted);font-size:13px;padding:8px 0">No notifications yet.</div>`
+    ? `<div style="color:var(--muted);font-size:13px;padding:14px 12px">No notifications yet.</div>`
     : _notifList.map((n,i)=>`<button class="search-row" onclick="_notifList[${i}].open()"><span style="font-size:18px">${n.icon}</span><span style="flex:1;text-align:left">${n.text}<br><small style="color:var(--muted)">${timeAgo(n.createdAt)}</small></span></button>`).join('');
-  sheet('Notifications', body);
+  panel.innerHTML=`<div class="notif-pop-head"><h3>Notifications</h3><button class="x" onclick="closeNotifPanel()" aria-label="Close">✕</button></div><div class="notif-pop-body">${body}</div>`;
+  panel.classList.add('show');
   state.lastSeen=state.lastSeen||{cerita:0,tasks:0}; state.lastSeen.notif=Date.now(); persist(); renderNotifBadge();
+  setTimeout(()=>document.addEventListener('click',_notifOutsideClick),0);
+}
+function closeNotifPanel(){
+  $('#notifPanel').classList.remove('show');
+  document.removeEventListener('click',_notifOutsideClick);
+}
+function _notifOutsideClick(e){
+  const panel=$('#notifPanel');
+  if(!panel.contains(e.target) && e.target.id!=='notifBtn' && !document.getElementById('notifBtn').contains(e.target)) closeNotifPanel();
 }
 
 /* ===================================================================== */
