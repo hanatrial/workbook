@@ -683,9 +683,15 @@ function syncToFirebase(){
         lastSynced[coll][item.id] = json;
       }
     });
-    Object.keys(lastSynced[coll]).forEach(id=>{
-      if(!seenIds.has(id)){ fbDb.ref(coll+'/'+id).remove(); delete lastSynced[coll][id]; }
-    });
+    const toDelete = Object.keys(lastSynced[coll]).filter(id=>!seenIds.has(id));
+    // Safety guard: normal usage deletes ONE item at a time (delete a task/story/photo).
+    // Seeing many disappear in the same sync means something reset local state wholesale
+    // (accidental or otherwise) — refuse to mirror that as a mass-delete on shared data.
+    if(toDelete.length > 1){
+      console.warn(`syncToFirebase: blocked a bulk delete of ${toDelete.length} item(s) from "${coll}" — looks like a local reset, not an intentional delete. Nothing was removed from the shared database.`);
+      return;
+    }
+    toDelete.forEach(id=>{ fbDb.ref(coll+'/'+id).remove(); delete lastSynced[coll][id]; });
   });
 }
 function initDataSync(){
@@ -1536,7 +1542,15 @@ function importData(e){
   };
   rd.readAsText(f); e.target.value='';
 }
-function resetAll(){ confirmSheet('Erase ALL photos, tasks and team edits on this device? This can\'t be undone.', ()=>{ state=seed(); persist(); route='feed'; closeSheet(); render(); toast('Reset done'); }, {confirmLabel:'Erase everything'}); }
+function resetAll(){
+  if(firebaseReady){
+    confirmSheet('This device is connected to shared team data — resetting here won\'t erase anyone\'s Cerita or Tugas. It will only forget who you are on this device.', ()=>{
+      state.currentUserId=null; DB.save(state); closeSheet(); route='cerita'; render(); toast('Local identity reset');
+    }, {title:'Reset this device only', confirmLabel:'Forget me on this device'});
+    return;
+  }
+  confirmSheet('Erase ALL photos, tasks and team edits on this device? This can\'t be undone.', ()=>{ state=seed(); persist(); route='feed'; closeSheet(); render(); toast('Reset done'); }, {confirmLabel:'Erase everything'});
+}
 
 /* ===================================================================== */
 /*                       CERITA (family stories)                         */
