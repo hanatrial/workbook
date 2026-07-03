@@ -68,8 +68,10 @@
   .story-photos.c1{grid-template-columns:1fr}
   .story-photos.c2,.story-photos.c3,.story-photos.c4{grid-template-columns:1fr 1fr}
   .story-photos .stphoto-wrap{position:relative;aspect-ratio:1;overflow:hidden;cursor:pointer;background:#0b1220}
-  .story-photos.c1 .stphoto-wrap{aspect-ratio:4/3}
   .story-photos img{width:100%;height:100%;object-fit:cover;display:block}
+  /* single-photo posts (often screenshots/documents): show the WHOLE image, capped height, no forced crop/zoom */
+  .story-photos.c1 .stphoto-wrap{aspect-ratio:auto;max-height:340px;display:flex;align-items:center;justify-content:center}
+  .story-photos.c1 .stphoto-wrap img{width:auto;height:auto;max-width:100%;max-height:340px;object-fit:contain}
   .story-photos .stphoto-more{position:absolute;inset:0;background:rgba(11,18,32,.62);color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;letter-spacing:-.02em}
   .story-thumbs{display:flex;gap:8px;flex-wrap:wrap}
   .stth{position:relative;width:72px;height:72px;border-radius:12px;overflow:hidden;border:1px solid var(--line)}
@@ -107,7 +109,7 @@
   .photo-head .meta small{display:block;color:var(--muted);font-size:11.5px}
   .photo-img{width:100%;display:block;background:#0b1220;aspect-ratio:4/3;object-fit:cover}
   .photo-body{padding:11px 13px 13px}
-  .photo-body .cap{font-size:14.5px;margin:0 0 6px;display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
+  .photo-body .cap{font-size:14.5px;margin:0 0 6px;display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap}
   .loc{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--brand-ink);background:#e6f5f3;padding:3px 9px;border-radius:999px;font-weight:600}
   .photo-actions{display:flex;gap:6px;margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
   .photo-actions button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:600;color:var(--muted);padding:7px;border-radius:10px}
@@ -225,15 +227,21 @@
   .photo-preview{width:100%;aspect-ratio:4/3;border-radius:14px;background:#0b1220 center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:#94a3b8;border:2px dashed #334155;overflow:hidden}
   .photo-preview.has{border-style:solid;border-color:var(--line)}
 
-  /* comments */
-  .cmt{display:flex;gap:9px;padding:10px 0;border-bottom:1px solid var(--line)}
-  .cmt:last-child{border-bottom:none}
-  .cmt .av{width:30px;height:30px;font-size:11px}
-  .cmt .cb{flex:1;min-width:0}
+  /* comments — soft chat-bubble style */
+  .cmt{display:flex;gap:9px;padding:7px 0}
+  .cmt .av{width:30px;height:30px;font-size:11px;margin-top:2px}
+  .cmt .cb{flex:1;min-width:0;background:var(--sand);border-radius:4px 16px 16px 16px;padding:9px 13px 10px}
   .cmt .cb .ch{display:flex;gap:7px;align-items:baseline}
-  .cmt .cb b{font-size:13px}
-  .cmt .cb time{font-size:10.5px;color:var(--muted)}
-  .cmt .cb p{margin:2px 0 0;font-size:14px}
+  .cmt .cb b{font-size:12.5px;font-family:var(--font-head);font-weight:600}
+  .cmt .cb time{font-size:10px;color:var(--muted)}
+  .cmt .cb p{margin:3px 0 0;font-size:14px;line-height:1.4;white-space:pre-wrap}
+  .cmt-reply-tag{font-size:11px;color:var(--muted);margin-bottom:3px;padding-bottom:5px;border-bottom:1px solid rgba(34,29,24,.08)}
+  .cmt-reply-tag b{color:var(--brand-ink);font-weight:700}
+  .cmt-reply-btn{margin-top:5px;font-size:11px;font-weight:700;color:var(--brand)}
+  .reply-chip{display:none;align-items:center;justify-content:space-between;gap:8px;background:var(--sand);border-radius:12px;padding:8px 13px;margin-bottom:8px;font-size:12.5px;font-weight:600}
+  .reply-chip.show{display:flex}
+  .reply-chip b{color:var(--brand-ink)}
+  .reply-chip button{color:var(--muted);font-size:15px;line-height:1}
   .cmt-box{display:flex;gap:8px;align-items:center;margin-top:12px}
   .cmt-box input{flex:1;padding:11px 13px;border:1px solid var(--line);border-radius:999px;background:#fff;outline:none}
   .cmt-box button{width:42px;height:42px;border-radius:50%;background:var(--brand);color:#fff;flex:none;display:flex;align-items:center;justify-content:center}
@@ -356,6 +364,8 @@
   .mention-item:hover,.mention-item.sel{background:var(--sand)}
   .mention-item .av{width:24px;height:24px;font-size:10px}
   .mention{color:var(--brand);font-weight:700}
+  .mention.mention-all{color:var(--danger);background:rgba(198,58,71,.1);padding:0 5px;border-radius:6px}
+  .mention-all-av{width:24px;height:24px;border-radius:50%;background:linear-gradient(145deg,var(--brand),var(--brand-2));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex:none}
   .icon-btn{width:36px;height:36px;border-radius:50%;background:var(--card);box-shadow:inset 0 0 0 1px rgba(34,29,24,.06),inset 0 1px 0 rgba(255,255,255,.75);display:flex;align-items:center;justify-content:center;color:var(--ink);flex:none;transition:transform .35s var(--spring)}
   .icon-btn:active{transform:scale(.9)}
   .search-group{margin-bottom:16px}
@@ -1355,7 +1365,7 @@ function openPhoto(id){
     ${p.location?`<span class="loc">📍 ${esc(p.location)}</span>`:''}
     <button class="btn ghost" onclick="taskFromPhoto('${p.id}')" style="margin-top:14px">✅ Turn into a task</button>
     <div style="font-weight:700;font-size:13px;margin:20px 2px 4px;color:var(--muted)">Comments (${(p.comments||[]).length})</div>
-    <div id="cmtList">${renderComments(p.comments)}</div>
+    <div id="cmtList">${renderComments(p.comments,'photo',p.id)}</div>
     ${commentBox('photo',p.id)}
     <button class="btn danger" onclick="deletePhoto('${p.id}')">Delete photo</button>`);
 }
@@ -1387,7 +1397,7 @@ function openTask(id){
     </div>
     <button class="btn ghost" onclick="reassign('${t.id}')" style="margin-top:12px">🔄 Reassign PIC</button>
     <div style="font-weight:700;font-size:13px;margin:20px 2px 4px;color:var(--muted)">Comments (${(t.comments||[]).length})</div>
-    <div id="cmtList">${renderComments(t.comments)}</div>
+    <div id="cmtList">${renderComments(t.comments,'task',t.id)}</div>
     ${commentBox('task',t.id)}
     <button class="btn danger" onclick="deleteTask('${t.id}')">Delete task</button>`);
 }
@@ -1419,9 +1429,10 @@ function spawnNextOccurrence(t){
 /* ---- @mentions ---- */
 function renderMentions(escapedText){
   const names=state.members.map(m=>m.name.split(' ')[0]).sort((a,b)=>b.length-a.length);
-  if(!names.length) return escapedText;
-  const re=new RegExp('@('+names.map(n=>n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')\\b','g');
-  return escapedText.replace(re,(m,name)=>`<b class="mention">@${name}</b>`);
+  const tokens=[...names,'all'].sort((a,b)=>b.length-a.length);
+  if(!tokens.length) return escapedText;
+  const re=new RegExp('@('+tokens.map(n=>n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')\\b','g');
+  return escapedText.replace(re,(m,name)=>name==='all'?`<b class="mention mention-all">@all</b>`:`<b class="mention">@${name}</b>`);
 }
 let _mentionState=null;
 function onMentionInput(input){
@@ -1432,17 +1443,23 @@ function onMentionInput(input){
   if(!pop) return;
   if(!m){ _mentionState=null; pop.classList.remove('show'); pop.innerHTML=''; return; }
   const query=m[2].toLowerCase();
-  const matches=state.members.filter(mem=>mem.name.split(' ')[0].toLowerCase().startsWith(query)).slice(0,5);
+  let matches=state.members.filter(mem=>mem.name.split(' ')[0].toLowerCase().startsWith(query));
+  if('all'.startsWith(query)) matches=[{id:'all',name:'Semua orang',special:true}, ...matches];
+  matches=matches.slice(0,6);
   if(!matches.length){ _mentionState=null; pop.classList.remove('show'); pop.innerHTML=''; return; }
   _mentionState={start:pos-m[2].length-1, end:pos, inputId:input.id};
   pop.dataset.firstId=matches[0].id;
-  pop.innerHTML=matches.map((mem,i)=>`<button type="button" class="mention-item ${i===0?'sel':''}" onmousedown="event.preventDefault();pickMention('${mem.id}')">${avatar(mem.id)}<span>${esc(mem.name.split(' ')[0])}</span></button>`).join('');
+  pop.innerHTML=matches.map((mem,i)=>{
+    const av = mem.special ? `<span class="av mention-all-av">@</span>` : avatar(mem.id);
+    const label = mem.special ? 'Semua orang' : mem.name.split(' ')[0];
+    return `<button type="button" class="mention-item ${i===0?'sel':''}" onmousedown="event.preventDefault();pickMention('${mem.id}')">${av}<span>${esc(label)}</span></button>`;
+  }).join('');
   pop.classList.add('show');
 }
 function pickMention(memberId){
   if(!_mentionState) return;
   const input=$('#'+_mentionState.inputId); if(!input) return;
-  const name=member(memberId).name.split(' ')[0];
+  const name=memberId==='all' ? 'all' : member(memberId).name.split(' ')[0];
   const val=input.value;
   const newVal=val.slice(0,_mentionState.start)+'@'+name+' '+val.slice(_mentionState.end);
   input.value=newVal;
@@ -1459,11 +1476,17 @@ function handleMentionOnlyKey(e){
   if(pop && pop.classList.contains('show')){ e.preventDefault(); const fid=pop.dataset.firstId; if(fid) pickMention(fid); }
 }
 
-function renderComments(list){
+function renderComments(list,kind,id){
   list=list||[];
-  if(!list.length) return `<div style="color:var(--muted);font-size:13px;padding:8px 0">No comments yet. Start the discussion 👇</div>`;
-  return list.map(c=>`<div class="cmt">${avatar(c.authorId,'')}
-    <div class="cb"><div class="ch"><b>${esc(member(c.authorId)?.name.split(' ')[0]||'?')}</b><time>${timeAgo(c.createdAt)}</time></div><p>${renderMentions(esc(c.text))}</p></div></div>`).join('');
+  if(!list.length) return `<div style="color:var(--muted);font-size:13px;padding:8px 0">Belum ada komentar. Mulai obrolannya 👇</div>`;
+  return list.map(c=>{
+    const parent = c.replyToId ? list.find(x=>x.id===c.replyToId) : null;
+    const replyTag = parent ? `<div class="cmt-reply-tag">↳ Balas <b>${esc(member(parent.authorId)?.name.split(' ')[0]||'?')}</b>: "${esc((parent.text||'(foto)').slice(0,40))}${parent.text&&parent.text.length>40?'…':''}"</div>` : '';
+    const nameEsc = esc(member(c.authorId)?.name.split(' ')[0]||'?').replace(/'/g,"\\'");
+    return `<div class="cmt">${avatar(c.authorId,'')}
+    <div class="cb">${replyTag}<div class="ch"><b>${esc(member(c.authorId)?.name.split(' ')[0]||'?')}</b><time>${timeAgo(c.createdAt)}</time></div><p>${renderMentions(esc(c.text))}</p>
+    <button type="button" class="cmt-reply-btn" onclick="startReply('${c.id}','${nameEsc}','${kind}','${id}')">Balas</button></div></div>`;
+  }).join('');
 }
 function handleCommentKey(e,kind,id){
   if(e.key!=='Enter') return;
@@ -1471,8 +1494,18 @@ function handleCommentKey(e,kind,id){
   if(pop && pop.classList.contains('show')){ e.preventDefault(); const fid=pop.dataset.firstId; if(fid) pickMention(fid); return; }
   addComment(kind,id);
 }
+let replyingTo=null; // {id, name}
+function startReply(commentId,name,kind,id){
+  replyingTo={id:commentId,name};
+  const chip=$('#replyChip');
+  if(chip){ chip.innerHTML=`<span>Membalas <b>${esc(name)}</b></span><button type="button" onclick="cancelReply()" aria-label="Batal balas">✕</button>`; chip.classList.add('show'); }
+  const input=$('#cmtInput'); if(input) input.focus();
+}
+function cancelReply(){ replyingTo=null; const chip=$('#replyChip'); if(chip){ chip.classList.remove('show'); chip.innerHTML=''; } }
 function commentBox(kind,id){
+  replyingTo=null;
   return `<div style="position:relative"><div class="mention-pop" id="mentionPop"></div>
+    <div class="reply-chip" id="replyChip"></div>
     <div class="cmt-box"><input id="cmtInput" placeholder="Write a comment… (@ to mention)" autocomplete="off" oninput="onMentionInput(this)" onkeydown="handleCommentKey(event,'${kind}','${id}')" onblur="setTimeout(closeMentionPop,150)"/>
     <button onclick="addComment('${kind}','${id}')" aria-label="Kirim komentar"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></button></div></div>`;
 }
@@ -1483,8 +1516,9 @@ function addComment(kind,id){
             : kind==='story' ? state.stories.find(s=>s.id===id)
             : state.tasks.find(t=>t.id===id);
   if(!obj) return; obj.comments=obj.comments||[];
-  obj.comments.push({id:uid(),authorId:state.currentUserId,text:txt,createdAt:Date.now()});
-  persist(); $('#cmtList').innerHTML=renderComments(obj.comments); inp.value=''; closeMentionPop();
+  obj.comments.push({id:uid(),authorId:state.currentUserId,text:txt,createdAt:Date.now(),replyToId:replyingTo?replyingTo.id:null});
+  cancelReply();
+  persist(); $('#cmtList').innerHTML=renderComments(obj.comments,kind,id); inp.value=''; closeMentionPop();
   $('#cmtList').lastElementChild?.scrollIntoView({behavior:'smooth',block:'nearest'});
   render(); // refresh counts behind sheet
 }
@@ -1643,12 +1677,12 @@ function openStory(id){
   const photos=(s.photos||[]).map(p=>`<img class="detail-img" src="${p}"/>`).join('');
   sheet('Cerita', `
     <div class="photo-head" style="padding:0 0 8px">${avatar(s.authorId)}<div class="meta"><b>${esc(member(s.authorId)?.name)}</b><small>${timeAgo(s.createdAt)}</small></div></div>
-    ${s.text?`<p style="margin:0 0 12px;font-size:15px">${renderMentions(esc(s.text))}</p>`:''}
+    ${s.text?`<p style="margin:0 0 12px;font-size:15px;white-space:pre-wrap">${renderMentions(esc(s.text))}</p>`:''}
     ${photos}
     ${reactionBar(s)}
     <button class="btn ghost" onclick="togglePinStory('${s.id}')" style="margin-top:14px">📌 ${s.pinned?'Lepas pin':'Sematkan cerita ini'}</button>
     <div style="font-weight:700;font-size:13px;margin:18px 2px 4px;color:var(--muted)">Komentar (${(s.comments||[]).length})</div>
-    <div id="cmtList">${renderComments(s.comments)}</div>
+    <div id="cmtList">${renderComments(s.comments,'story',s.id)}</div>
     ${commentBox('story',s.id)}
     ${s.authorId===state.currentUserId?`<button class="btn danger" onclick="deleteStory('${s.id}')">Hapus cerita</button>`:''}`);
 }
@@ -1663,8 +1697,8 @@ function openStoryForm(){
   sheet('Tulis cerita', `
     <label class="f">Ceritamu</label>
     <div style="position:relative"><div class="mention-pop" id="mentionPop"></div>
-    <textarea class="in" id="stext" placeholder="Lagi ngapain nih? Kabar hari ini, momen seru, apa aja… 😄 (@ buat tag orang)" oninput="onMentionInput(this)" onkeydown="handleMentionOnlyKey(event)" onblur="setTimeout(closeMentionPop,150)"></textarea></div>
-    <label class="f">Foto (boleh banyak, opsional)</label>
+    <textarea class="in" id="stext" placeholder="Lagi ngapain nih? Kabar hari ini, momen seru, apa aja… 😄 (@ buat tag orang)" oninput="onMentionInput(this)" onkeydown="handleMentionOnlyKey(event)" onblur="setTimeout(closeMentionPop,150)" onpaste="onStoryPaste(event)"></textarea></div>
+    <label class="f">Foto (boleh banyak, opsional) <span style="font-weight:500;color:var(--muted)">— bisa juga tempel (Ctrl+V) screenshot langsung</span></label>
     <div id="stThumbs" class="story-thumbs"></div>
     <span class="compress-chip" id="compressChip"><span class="spin"></span>Memproses foto…</span>
     <button class="btn ghost" onclick="$('#sf').click()" style="margin-top:8px">📷 Tambah foto</button>
@@ -1676,13 +1710,27 @@ function syncCompressUI(){
   if(chip) chip.classList.toggle('show', pendingCompress>0);
   if(btn){ if(pendingCompress>0) btn.setAttribute('disabled',''); else btn.removeAttribute('disabled'); }
 }
+function addStoryPhotoFile(file){
+  pendingCompress++; syncCompressUI();
+  const rd=new FileReader();
+  rd.onload=()=>compressImage(rd.result,1200,.7,out=>{ draftStoryPhotos.push(out); pendingCompress--; renderStThumbs(); syncCompressUI(); });
+  rd.onerror=()=>{ pendingCompress--; syncCompressUI(); toast('Satu foto gagal dibaca'); };
+  rd.readAsDataURL(file);
+}
 function pickStoryPhotos(e){
   const files=[...e.target.files]; e.target.value='';
-  pendingCompress+=files.length; syncCompressUI();
-  files.forEach(f=>{ const rd=new FileReader();
-    rd.onload=()=>compressImage(rd.result,1200,.7,out=>{ draftStoryPhotos.push(out); pendingCompress--; renderStThumbs(); syncCompressUI(); });
-    rd.onerror=()=>{ pendingCompress--; syncCompressUI(); toast('Satu foto gagal dibaca'); };
-    rd.readAsDataURL(f); });
+  files.forEach(addStoryPhotoFile);
+}
+function onStoryPaste(e){
+  const items=(e.clipboardData||e.originalEvent?.clipboardData)?.items; if(!items) return;
+  let gotImage=false;
+  for(const item of items){
+    if(item.type && item.type.startsWith('image/')){
+      const file=item.getAsFile();
+      if(file){ gotImage=true; addStoryPhotoFile(file); }
+    }
+  }
+  if(gotImage){ e.preventDefault(); toast('Foto ditempel 📋'); }
 }
 function renderStThumbs(){ const el=$('#stThumbs'); if(!el) return;
   el.innerHTML=draftStoryPhotos.map((p,i)=>`<div class="stth"><img src="${p}"/><button onclick="draftStoryPhotos.splice(${i},1);renderStThumbs()">✕</button></div>`).join('');
