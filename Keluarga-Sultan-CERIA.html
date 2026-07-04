@@ -1747,6 +1747,7 @@ function storyCard(s){
 const HEART_OUTLINE=`<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M34.6 6.1c-6 0-9.4 5.1-10.6 7.3-1.2-2.2-4.6-7.3-10.6-7.3C6 6.1 1 11.6 1 18.4c0 11.3 15.4 20.9 22 27.2 6.6-6.3 22-15.9 22-27.2 0-6.8-5-12.3-11.4-12.3z"/></svg>`;
 const HEART_FILLED=`<svg viewBox="0 0 48 48" fill="currentColor"><path d="M34.6 6.1c-6 0-9.4 5.1-10.6 7.3-1.2-2.2-4.6-7.3-10.6-7.3C6 6.1 1 11.6 1 18.4c0 11.3 15.4 20.9 22 27.2 6.6-6.3 22-15.9 22-27.2 0-6.8-5-12.3-11.4-12.3z"/></svg>`;
 const COMMENT_ICON=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-11.9 7.6L3 21l1.9-6.1A8.4 8.4 0 1 1 21 11.5z"/></svg>`;
+const SHARE_ICON=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>`;
 function reactionBar(s){
   const arr=(s.reactions&&s.reactions['❤️'])||[], liked=arr.includes(state.currentUserId);
   const names=arr.map(id=>esc(member(id)?.name.split(' ')[0]||'')).filter(Boolean);
@@ -1757,7 +1758,15 @@ function reactionBar(s){
   return `<div class="ig-actions">
     <button class="ig-heart ${liked?'on':''}" data-rx="${s.id}:❤️" onclick="event.stopPropagation();toggleReact('${s.id}','❤️')" aria-label="Like" aria-pressed="${liked}">${liked?HEART_FILLED:HEART_OUTLINE}</button>
     <button onclick="event.stopPropagation();openStory('${s.id}')" aria-label="Comment">${COMMENT_ICON}</button>
+    <button onclick="event.stopPropagation();shareStoryToWhatsApp('${s.id}')" aria-label="Share to WhatsApp">${SHARE_ICON}</button>
   </div>${likedText?`<p class="ig-liked-by">${likedText}</p>`:''}`;
+}
+function shareStoryToWhatsApp(id){
+  const s=state.stories.find(x=>x.id===id); if(!s) return;
+  const authorName=member(s.authorId)?.name||'Someone';
+  const snippet=(s.text||'').trim();
+  const text=`${authorName} shared a Cerita on Keluarga Sultan:\n"${snippet||'(photo)'}"\n\n${location.origin+location.pathname}`;
+  window.open('https://wa.me/?text='+encodeURIComponent(text), '_blank');
 }
 function toggleReact(id,e){
   if(needMe()) return;
