@@ -1766,6 +1766,7 @@ function shareStoryToWhatsApp(id){
   const authorName=member(s.authorId)?.name||'Someone';
   const snippet=(s.text||'').trim();
   const text=`${authorName} shared a Cerita on Keluarga Sultan:\n"${snippet||'(photo)'}"\n\n${location.origin+location.pathname}`;
+  if(navigator.share){ navigator.share({text}).catch(()=>{}); return; }
   window.open('https://wa.me/?text='+encodeURIComponent(text), '_blank');
 }
 function toggleReact(id,e){
