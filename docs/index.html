@@ -75,13 +75,6 @@
     box-shadow:inset 0 0 0 1.5px rgba(0,0,0,.06);
   }
   .av svg{width:100%;height:100%;display:block}
-  /* reactions */
-  .rxbar{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:2px}
-  .rx{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 10px;font-size:15px;display:flex;align-items:center;gap:5px;line-height:1}
-  .rx b{font-size:12px;font-weight:800;color:var(--muted)}
-  .rx.on{background:#fff1f2;border-color:#fecdd3}
-  .rx.on b{color:#e11d48}
-  .rx:active{transform:scale(.9)}
   /* story photos */
   .story-photos{display:grid;gap:3px}
   .story-photos.c1{grid-template-columns:1fr}
@@ -422,6 +415,14 @@
   .reminder-card.warn b{color:#8a5a12}
   .reminder-list{margin-top:5px;display:flex;flex-direction:column;gap:2px}
   .reminder-list span{font-size:12px;color:var(--muted);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+  .ig-actions{display:flex;align-items:center;gap:14px;margin-bottom:2px}
+  .ig-actions button{display:flex;align-items:center;padding:4px;color:var(--ink)}
+  .ig-actions button svg{width:24px;height:24px;transition:transform .15s var(--spring,ease)}
+  .ig-actions button:active svg{transform:scale(.82)}
+  .ig-heart.on svg{color:#e11d48}
+  .ig-heart.on svg path{animation:igPop .3s var(--spring,ease)}
+  @keyframes igPop{0%{transform:scale(1)}35%{transform:scale(1.3)}100%{transform:scale(1)}}
+  .ig-liked-by{font-size:13px;font-weight:700;margin:0 0 2px}
   .cmt-preview{margin-top:10px;display:flex;flex-direction:column;gap:4px}
   .cmt-preview-row{font-size:13px;line-height:1.4;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical}
   .cmt-preview-row b{font-weight:700;margin-right:5px}
@@ -457,9 +458,9 @@
   .ring-row span{color:var(--muted);font-size:12.5px;font-weight:600}
 
   /* ---- Reaction pop + photo compress spinner + Tambah hierarchy ---- */
-  .rx.pop{animation:rxpop .38s var(--spring)}
+  .ig-heart.pop svg{animation:rxpop .38s var(--spring)}
   @keyframes rxpop{0%{transform:scale(1)}40%{transform:scale(1.28)}100%{transform:scale(1)}}
-  @media(prefers-reduced-motion:reduce){.rx.pop{animation:none}}
+  @media(prefers-reduced-motion:reduce){.ig-heart.pop svg{animation:none}}
   .compress-chip{display:none;align-items:center;gap:8px;margin-top:10px;font-size:12.5px;font-weight:700;color:var(--brand-ink)}
   .compress-chip.show{display:inline-flex}
   .compress-chip .spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(11,107,94,.25);border-top-color:var(--brand);animation:spin .8s linear infinite}
@@ -517,10 +518,6 @@
   .cmt-box input{border:none;background:#fff;box-shadow:var(--hair),var(--hi)}
   .cmt-box button{background:linear-gradient(145deg,var(--brand),var(--brand-2));box-shadow:0 8px 18px -8px rgba(11,107,94,.55);transition:transform .3s var(--spring)}
   .cmt-box button:active{transform:scale(.9)}
-  .rx{border:none;box-shadow:var(--hair),var(--hi);background:#fff;transition:transform .25s var(--spring)}
-  .rx.on{background:rgba(198,58,71,.1);box-shadow:0 0 0 1.5px rgba(198,58,71,.35)}
-  .rx.rx-more{color:var(--muted);font-weight:800;padding:5px 11px}
-  .rx.on b{color:var(--danger)}
   .toast{background:var(--ink);border-radius:999px;box-shadow:0 16px 34px -12px rgba(34,29,24,.55);font-weight:600}
   .photo-preview{background:#2A2621 center/cover no-repeat;border:2px dashed rgba(255,255,255,.22);border-radius:18px}
   .photo-preview.has{border-color:var(--line)}
@@ -763,7 +760,6 @@ function seed(){
 }
 let state = DB.load() || seed();      // init AFTER seed()/TEAM_NAMES are defined (avoids TDZ on fresh load)
 function persist(){ DB.save(state); syncToFirebase(); }
-const EMOJIS = ['❤️','😂','🔥','👍','😮','🙏'];
 
 /* ---------------- Helpers --------------------------------------------- */
 const $ = (s,r=document)=>r.querySelector(s);
@@ -1751,19 +1747,20 @@ function storyCard(s){
     </div>
   </div>`;
 }
-let expandedReactionIds = new Set();
+const HEART_OUTLINE=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7.5-4.6-10-9.3C.5 8 2 4.5 5.6 4.5c2 0 3.6 1.1 4.4 2.6.8-1.5 2.4-2.6 4.4-2.6C18 4.5 19.5 8 22 11.7 19.5 16.4 12 21 12 21z"/></svg>`;
+const HEART_FILLED=`<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.6"><path d="M12 21s-7.5-4.6-10-9.3C.5 8 2 4.5 5.6 4.5c2 0 3.6 1.1 4.4 2.6.8-1.5 2.4-2.6 4.4-2.6C18 4.5 19.5 8 22 11.7 19.5 16.4 12 21 12 21z"/></svg>`;
+const COMMENT_ICON=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-11.9 7.6L3 21l1.9-6.1A8.4 8.4 0 1 1 21 11.5z"/></svg>`;
 function reactionBar(s){
-  const rx=s.reactions||{};
-  const pill=e=>{ const arr=rx[e]||[], on=arr.includes(state.currentUserId);
-    return `<button class="rx ${on?'on':''}" data-rx="${s.id}:${e}" onclick="event.stopPropagation();toggleReact('${s.id}','${e}')" aria-label="React ${e}${arr.length?', '+arr.length+' people':''}" aria-pressed="${on}">${e}${arr.length?`<b>${arr.length}</b>`:''}</button>`; };
-  const used=EMOJIS.filter(e=>(rx[e]||[]).length>0), rest=EMOJIS.filter(e=>!used.includes(e));
-  const expanded=expandedReactionIds.has(s.id);
-  const moreBtn=rest.length?`<button class="rx rx-more" onclick="event.stopPropagation();toggleReactionExpand('${s.id}')" aria-label="${expanded?'Hide other reactions':'More reactions'}" aria-expanded="${expanded}">${expanded?'−':'+'}</button>`:'';
-  return `<div class="rxbar">${used.map(pill).join('')}${moreBtn}${expanded?rest.map(pill).join(''):''}</div>`;
-}
-function toggleReactionExpand(id){
-  if(expandedReactionIds.has(id)) expandedReactionIds.delete(id); else expandedReactionIds.add(id);
-  if($('#modalRoot').firstElementChild) openStory(id); else render();
+  const arr=(s.reactions&&s.reactions['❤️'])||[], liked=arr.includes(state.currentUserId);
+  const names=arr.map(id=>esc(member(id)?.name.split(' ')[0]||'')).filter(Boolean);
+  let likedText='';
+  if(names.length===1) likedText=`Liked by <b>${names[0]}</b>`;
+  else if(names.length===2) likedText=`Liked by <b>${names[0]}</b> and <b>${names[1]}</b>`;
+  else if(names.length>2) likedText=`Liked by <b>${names[0]}</b> and <b>${names.length-1} others</b>`;
+  return `<div class="ig-actions">
+    <button class="ig-heart ${liked?'on':''}" data-rx="${s.id}:❤️" onclick="event.stopPropagation();toggleReact('${s.id}','❤️')" aria-label="Like" aria-pressed="${liked}">${liked?HEART_FILLED:HEART_OUTLINE}</button>
+    <button onclick="event.stopPropagation();openStory('${s.id}')" aria-label="Comment">${COMMENT_ICON}</button>
+  </div>${likedText?`<p class="ig-liked-by">${likedText}</p>`:''}`;
 }
 function toggleReact(id,e){
   if(needMe()) return;
