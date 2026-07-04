@@ -1084,15 +1084,19 @@ function taskRow(t,opts={}){
 }
 
 /* ---- BOARD ---- */
+let boardFilter='all';
+function setBoardFilter(v){ boardFilter=v; render(); }
 function viewBoard(){
   const head=`<div class="view-title"><div><h2>Board</h2><div class="sub">Drag-free kanban — tap buttons to move</div></div></div>`;
+  const options=`<option value="all">All people</option>${state.members.map(m=>`<option value="${m.id}" ${boardFilter===m.id?'selected':''}>${esc(m.name)}</option>`).join('')}`;
+  const filterBar=`<select class="in" id="boardFilterSel" style="margin-bottom:14px" onchange="setBoardFilter(this.value)">${options}</select>`;
   const col=(key)=>{
-    const items=state.tasks.filter(t=>t.status===key).sort((a,b)=>b.createdAt-a.createdAt);
+    const items=state.tasks.filter(t=>t.status===key && (boardFilter==='all'||t.picId===boardFilter)).sort((a,b)=>b.createdAt-a.createdAt);
     const s=STATUS[key];
     return `<div class="col-scroll"><div class="col-h"><span class="dot" style="background:${s.dot}"></span>${s.t}<span class="n">${items.length}</span></div>
       ${items.length?items.map(t=>boardCard(t,key)).join(''):`<div style="color:var(--muted);font-size:12.5px;padding:6px 4px 14px">— empty —</div>`}</div>`;
   };
-  return head+`<div class="board">${col('todo')}${col('doing')}${col('done')}</div>`;
+  return head+filterBar+`<div class="board">${col('todo')}${col('doing')}${col('done')}</div>`;
 }
 function boardCard(t,key){
   const pr=PRIO[t.priority]||PRIO.med;
