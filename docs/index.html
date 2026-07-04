@@ -1206,9 +1206,13 @@ function viewTeam(){
   const rows=state.members.map(m=>{
     const open=state.tasks.filter(t=>t.picId===m.id&&t.status!=='done').length;
     const online=firebaseReady && isOnline(m.id);
+    const lastSeenTs = presence[m.id]?.lastSeen;
+    const statusText = online
+      ? ' · <span style="color:var(--ok);font-weight:700">Online</span>'
+      : (firebaseReady && lastSeenTs ? ` · Last seen ${timeAgo(lastSeenTs)}` : '');
     return `<div class="card member" onclick="viewPersonTasks('${m.id}')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();viewPersonTasks('${m.id}')}" style="cursor:pointer">
       <span style="position:relative;display:inline-flex;flex:none">${avatar(m.id)}${firebaseReady?`<span class="presence-dot ${online?'online':'offline'}" aria-label="${online?'Online':'Offline'}"></span>`:''}</span>
-      <div class="info"><b>${esc(m.name)}${m.id===state.currentUserId?' <span style="color:var(--brand);font-size:11px;font-weight:700">(you)</span>':''}</b><small>${esc(m.role||'Team member')}${online?' · <span style="color:var(--ok);font-weight:700">Online</span>':''}</small></div>
+      <div class="info"><b>${esc(m.name)}${m.id===state.currentUserId?' <span style="color:var(--brand);font-size:11px;font-weight:700">(you)</span>':''}</b><small>${esc(m.role||'Team member')}${statusText}</small></div>
       ${open?`<span class="load">${open} open</span>`:''}
       <button class="link-btn" onclick="event.stopPropagation();editMember('${m.id}')">Edit</button>
     </div>`;
