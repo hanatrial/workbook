@@ -1741,14 +1741,11 @@ function storyCard(s){
     <div class="photo-body" style="padding-top:11px">
       ${reactionBar(s)}
       ${c.length?`<div class="cmt-preview">${c.slice(-2).map(cm=>`<div class="cmt-preview-row"><b>${esc(member(cm.authorId)?.name.split(' ')[0]||'?')}</b> <span>${renderMentions(esc(cm.text))}</span></div>`).join('')}</div>`:''}
-      <div class="photo-actions" style="margin-top:11px">
-        <button onclick="openStory('${s.id}')">💬 ${c.length>2?'View all '+c.length+' comments':c.length?c.length+' comments':'Comment'}</button>
-      </div>
     </div>
   </div>`;
 }
-const HEART_OUTLINE=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7.5-4.6-10-9.3C.5 8 2 4.5 5.6 4.5c2 0 3.6 1.1 4.4 2.6.8-1.5 2.4-2.6 4.4-2.6C18 4.5 19.5 8 22 11.7 19.5 16.4 12 21 12 21z"/></svg>`;
-const HEART_FILLED=`<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.6"><path d="M12 21s-7.5-4.6-10-9.3C.5 8 2 4.5 5.6 4.5c2 0 3.6 1.1 4.4 2.6.8-1.5 2.4-2.6 4.4-2.6C18 4.5 19.5 8 22 11.7 19.5 16.4 12 21 12 21z"/></svg>`;
+const HEART_OUTLINE=`<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M34.6 6.1c-6 0-9.4 5.1-10.6 7.3-1.2-2.2-4.6-7.3-10.6-7.3C6 6.1 1 11.6 1 18.4c0 11.3 15.4 20.9 22 27.2 6.6-6.3 22-15.9 22-27.2 0-6.8-5-12.3-11.4-12.3z"/></svg>`;
+const HEART_FILLED=`<svg viewBox="0 0 48 48" fill="currentColor"><path d="M34.6 6.1c-6 0-9.4 5.1-10.6 7.3-1.2-2.2-4.6-7.3-10.6-7.3C6 6.1 1 11.6 1 18.4c0 11.3 15.4 20.9 22 27.2 6.6-6.3 22-15.9 22-27.2 0-6.8-5-12.3-11.4-12.3z"/></svg>`;
 const COMMENT_ICON=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-11.9 7.6L3 21l1.9-6.1A8.4 8.4 0 1 1 21 11.5z"/></svg>`;
 function reactionBar(s){
   const arr=(s.reactions&&s.reactions['❤️'])||[], liked=arr.includes(state.currentUserId);
