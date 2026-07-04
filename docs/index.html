@@ -1,4 +1,3 @@
-<!-- build 20260703c -->
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -52,7 +51,7 @@
 
   /* ---------- Notification popover (anchored under the bell, top-right) ---------- */
   .notif-popover{
-    position:fixed;top:64px;right:12px;width:320px;max-width:calc(100vw - 24px);
+    position:fixed;top:64px;right:12px;width:360px;max-width:calc(100vw - 24px);
     background:var(--card,#fff);border-radius:16px;box-shadow:0 16px 40px rgba(15,23,42,.22);
     z-index:120;max-height:min(70vh,420px);overflow:auto;display:none;
     border:1px solid var(--line,#eee);
@@ -66,6 +65,8 @@
   .notif-pop-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line,#eee);position:sticky;top:0;background:inherit;border-radius:16px 16px 0 0}
   .notif-pop-head h3{margin:0;font-size:15px}
   .notif-pop-body{padding:6px}
+  .notif-pop-body .search-row{align-items:flex-start}
+  .notif-pop-body .search-row span{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.35}
 
   /* ---------- Avatar ---------- */
   .av{
@@ -608,7 +609,7 @@
   </svg>
   <div class="titles">
     <b>Keluarga Sultan - Ceritaku</b>
-    <small>Sulawesi Terdepan &middot; 12 people</small>
+    <small>Sulawesi Terdepan &middot; 13 people</small>
   </div>
   <button class="icon-btn" onclick="openSearch()" aria-label="Search">
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -753,7 +754,7 @@ function initDataSync(){
 }
 
 /* ---------------- Seed / state ---------------------------------------- */
-const TEAM_NAMES = ['Lisa','Imad','Jose','Hendry','Fatur','Panca','Rafi','Bryllian','Bryan L','Bincha','Wafi','Vilo'];
+const TEAM_NAMES = ['Lisa','Imad','Jose','Hendry','Fatur','Panca','Rafi','Bryllian','Bryan L','Bincha','Wafi','Vilo','Andre'];
 function seed(){
   const members = TEAM_NAMES.map((name,i)=>(
     { id:'m'+(i+1), name, role:'Sulawesi Terdepan', color:AVATAR_COLORS[i%AVATAR_COLORS.length] }
