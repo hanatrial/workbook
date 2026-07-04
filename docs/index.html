@@ -1356,35 +1356,15 @@ function savePhoto(){
 
 /* ---- Task form ---- */
 let taskPhotoLink=null;
-const TASK_TEMPLATES=[
-  { label:'Store Visit', title:'Store visit', desc:'Routine visit to a store/outlet.', checklist:['Check product stock','Check shelf prices','Photo the display'] },
-  { label:'Stock Check', title:'Weekly stock check', desc:'Check warehouse/store stock.', checklist:['Count physical stock','Compare with system','Report any discrepancy'] },
-  { label:'Display Photo', title:'Photo & tidy the display', desc:'Make sure the display is tidy and photographed.', checklist:['Tidy products on the shelf','Photo the display','Send photo to Feed'] },
-];
-function useTemplate(i){
-  const t=TASK_TEMPLATES[i]; if(!t) return;
-  $('#ttitle').value=t.title; $('#tdesc').value=t.desc;
-  draftChecklist=t.checklist.map(text=>({id:uid(),text,done:false}));
-  renderChecklistBuilder();
-}
 function openTaskForm(){
   if(needMe()) return;
   pickedPics=new Set(); pickedRepeat='none'; draftChecklist=[];
   const who=state.members.map(m=>`<button type="button" class="who" data-pic="${m.id}" onclick="pickPic(this,'${m.id}')">${avatar(m.id)}<span>${esc(m.name.split(' ')[0])}</span></button>`).join('');
-  const templates=TASK_TEMPLATES.map((t,i)=>`<button type="button" onclick="useTemplate(${i})">${esc(t.label)}</button>`).join('');
   sheet('Assign a task', `
-    <label class="f">Quick templates (optional)</label>
-    <div class="seg">${templates}</div>
     <label class="f">Task title</label>
     <input class="in" id="ttitle" placeholder="e.g. Foto display & cek stok Milku"/>
     <label class="f">Details / what to do</label>
     <textarea class="in" id="tdesc" placeholder="Describe the task…"></textarea>
-    <label class="f">Checklist (optional)</label>
-    <div id="checklistBuilder"></div>
-    <div style="display:flex;gap:8px;margin-top:8px">
-      <input class="in" id="clInput" placeholder="Add a checklist item…" onkeydown="if(event.key==='Enter'){event.preventDefault();addChecklistDraftItem()}"/>
-      <button type="button" class="btn ghost" style="margin-top:0;width:auto;padding:0 16px;white-space:nowrap" onclick="addChecklistDraftItem()">Add</button>
-    </div>
     <label class="f" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
       <span>PIC — person in charge <span style="font-weight:500;color:var(--muted)">(pick one or more)</span></span>
       <button type="button" id="pickAllBtn" onclick="toggleAllPics()" style="color:var(--brand);font-weight:700;font-size:12px">Select all</button>
@@ -1407,7 +1387,6 @@ function openTaskForm(){
       <button type="button" onclick="segPick(this,'repeatSeg')" data-v="monthly">Monthly</button>
     </div>
     <button class="btn primary" onclick="saveTask()">Create task</button>`);
-  renderChecklistBuilder();
   if(taskPhotoLink){ const p=state.photos.find(x=>x.id===taskPhotoLink); if(p&&p.caption) $('#ttitle').value=p.caption; }
 }
 let pickedPics=new Set(), pickedPrio='med', pickedRepeat='none', draftChecklist=[];
@@ -1429,14 +1408,6 @@ function syncPickAllBtn(){
   btn.textContent = (state.members.length>0 && state.members.every(m=>pickedPics.has(m.id))) ? 'Clear all' : 'Select all';
 }
 function segPick(btn,seg){ document.querySelectorAll('#'+seg+' button').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); if(seg==='prioSeg')pickedPrio=btn.dataset.v; else if(seg==='repeatSeg')pickedRepeat=btn.dataset.v; }
-function addChecklistDraftItem(){
-  const inp=$('#clInput'); const text=inp.value.trim(); if(!text) return;
-  draftChecklist.push({id:uid(),text,done:false}); inp.value=''; renderChecklistBuilder(); inp.focus();
-}
-function renderChecklistBuilder(){
-  const el=$('#checklistBuilder'); if(!el) return;
-  el.innerHTML = draftChecklist.length ? draftChecklist.map((it,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0"><span style="flex:1;font-size:14px">☐ ${esc(it.text)}</span><button type="button" onclick="draftChecklist.splice(${i},1);renderChecklistBuilder()" style="color:var(--muted);font-size:12px">Remove</button></div>`).join('') : '';
-}
 function normalizeUrl(u){ u=(u||'').trim(); if(!u) return null; if(!/^[a-z][a-z0-9+.-]*:\/\//i.test(u)) u='https://'+u; return u; }
 function saveTask(){
   const title=$('#ttitle').value.trim();
