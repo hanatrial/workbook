@@ -749,25 +749,10 @@ function initDataSync(){
         const val = snap.val() || {};
         lastSynced[coll] = {}; Object.keys(val).forEach(id=>{ lastSynced[coll][id]=JSON.stringify(val[id]); });
         state[coll] = Object.values(val);
-        DB.save(state); scheduleLiveRender();
+        DB.save(state); render();
       });
     });
   }).catch(e=>console.warn('Firebase initial sync failed:', e));
-}
-/* Live updates from teammates can arrive while you're mid-tap; replacing the DOM right then
-   drops the tap silently. Hold off re-rendering until the finger lifts, so buttons (like/comment/
-   share, etc.) stay put for the whole gesture. */
-let _touchDown=false;
-document.addEventListener('touchstart',()=>{_touchDown=true;},{passive:true});
-document.addEventListener('touchend',()=>{_touchDown=false;},{passive:true});
-document.addEventListener('touchcancel',()=>{_touchDown=false;},{passive:true});
-let _liveRenderTimer=null;
-function scheduleLiveRender(){
-  clearTimeout(_liveRenderTimer);
-  _liveRenderTimer=setTimeout(()=>{
-    if(_touchDown){ scheduleLiveRender(); return; }
-    render();
-  }, 300);
 }
 
 /* ---------------- Seed / state ---------------------------------------- */
