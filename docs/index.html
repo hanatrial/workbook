@@ -418,7 +418,7 @@
   .reminder-list{margin-top:5px;display:flex;flex-direction:column;gap:2px}
   .reminder-list span{font-size:12px;color:var(--muted);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
   .ig-actions{display:flex;align-items:center;gap:14px;margin-bottom:2px}
-  .ig-actions button{display:flex;align-items:center;padding:4px;color:var(--ink)}
+  .ig-actions button{display:flex;align-items:center;justify-content:center;min-width:40px;min-height:40px;margin:-8px;padding:8px;color:var(--ink)}
   .ig-actions button svg{width:24px;height:24px;transition:transform .15s var(--spring,ease)}
   .ig-actions button:active svg{transform:scale(.82)}
   .ig-heart.on svg{color:#e11d48}
@@ -749,10 +749,25 @@ function initDataSync(){
         const val = snap.val() || {};
         lastSynced[coll] = {}; Object.keys(val).forEach(id=>{ lastSynced[coll][id]=JSON.stringify(val[id]); });
         state[coll] = Object.values(val);
-        DB.save(state); render();
+        DB.save(state); scheduleLiveRender();
       });
     });
   }).catch(e=>console.warn('Firebase initial sync failed:', e));
+}
+/* Live updates from teammates can arrive while you're mid-tap; replacing the DOM right then
+   drops the tap silently. Hold off re-rendering until the finger lifts, so buttons (like/comment/
+   share, etc.) stay put for the whole gesture. */
+let _touchDown=false;
+document.addEventListener('touchstart',()=>{_touchDown=true;},{passive:true});
+document.addEventListener('touchend',()=>{_touchDown=false;},{passive:true});
+document.addEventListener('touchcancel',()=>{_touchDown=false;},{passive:true});
+let _liveRenderTimer=null;
+function scheduleLiveRender(){
+  clearTimeout(_liveRenderTimer);
+  _liveRenderTimer=setTimeout(()=>{
+    if(_touchDown){ scheduleLiveRender(); return; }
+    render();
+  }, 300);
 }
 
 /* ---------------- Seed / state ---------------------------------------- */
