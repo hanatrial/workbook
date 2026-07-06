@@ -820,6 +820,11 @@ function dueState(d){ if(!d)return null; const today=new Date(); today.setHours(
   if(diff<0)return{cls:'due',t:'Overdue '+fmtDate(d)}; if(diff===0)return{cls:'due',t:'Due today'};
   if(diff<=2)return{cls:'due',t:'Due '+fmtDate(d)}; return{cls:'due ok',t:'Due '+fmtDate(d)}; }
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1900); }
+function errorToast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),6000); }
+/* Surface silent crashes on-screen (instead of failing invisibly) so real bugs on real
+   devices can be diagnosed from a screenshot instead of guesswork. */
+window.addEventListener('error', e=>{ console.error('Uncaught error:', e.error||e.message); errorToast('⚠️ Error: '+String(e.message||e.error||'unknown').slice(0,90)); });
+window.addEventListener('unhandledrejection', e=>{ console.error('Unhandled rejection:', e.reason); errorToast('⚠️ Error: '+String(e.reason&&e.reason.message||e.reason).slice(0,90)); });
 
 const PRIO = { high:{c:'#e11d48',t:'High'}, med:{c:'#f59e0b',t:'Medium'}, low:{c:'#94a3b8',t:'Low'} };
 const STATUS = { todo:{t:'To Do',dot:'#94a3b8',cls:'todo'}, doing:{t:'In Progress',dot:'#f59e0b',cls:'doing'}, done:{t:'Done',dot:'#16a34a',cls:'done'} };
