@@ -652,9 +652,18 @@
 
 /* ---------------- Storage adapter (swap to Firebase later) ------------- */
 const STORE_KEY = 'pic_workbook_v1';
+let _storageFullWarned=false;
 const DB = {
   load(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)) }catch(e){ return null } },
-  save(d){ localStorage.setItem(STORE_KEY, JSON.stringify(d)); }
+  save(d){
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify(d)); }
+    catch(e){
+      // Device's local cache is full (common once photo history grows large). This is not
+      // fatal — Firebase is the real source of truth — so don't let it block persist().
+      console.warn('Local cache save failed (storage full?):', e);
+      if(!_storageFullWarned){ _storageFullWarned=true; toast('⚠️ Device storage full — saving to team feed only, not cached locally'); }
+    }
+  }
 };
 
 const AVATAR_COLORS = ['#0ea5e9','#3b82f6','#6366f1','#0891b2','#14b8a6','#10b981',
