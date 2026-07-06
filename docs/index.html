@@ -27,6 +27,7 @@
     background:var(--bg); color:var(--ink); font-size:15px; line-height:1.45;
     padding-bottom:78px; overscroll-behavior-y:contain;
   }
+  body.sheet-open{position:fixed;left:0;right:0;width:100%;overflow:hidden}
   .hidden{display:none !important}
   button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
   input,textarea,select{font-family:inherit;font-size:15px}
@@ -1256,12 +1257,26 @@ function emptyBox(em,t,s){
 /* ===================================================================== */
 /*                          MODALS / SHEETS                              */
 /* ===================================================================== */
+let _scrollLockY=0;
+function lockBodyScroll(){
+  if(document.body.classList.contains('sheet-open')) return;
+  _scrollLockY=window.scrollY;
+  document.body.classList.add('sheet-open');
+  document.body.style.top=(-_scrollLockY)+'px';
+}
+function unlockBodyScroll(){
+  if(!document.body.classList.contains('sheet-open')) return;
+  document.body.classList.remove('sheet-open');
+  document.body.style.top='';
+  window.scrollTo(0,_scrollLockY);
+}
 function sheet(title,bodyHTML){
   $('#modalRoot').innerHTML=`<div class="overlay" onclick="if(event.target===this)closeSheet()">
     <div class="sheet"><div class="sheet-head" ontouchstart="sheetTouchStart(event)" ontouchmove="sheetTouchMove(event)" ontouchend="sheetTouchEnd(event)"><h3>${title}</h3><button class="x" onclick="closeSheet()" aria-label="Close">✕</button></div>
     <div class="sheet-body">${bodyHTML}</div></div></div>`;
+  lockBodyScroll();
 }
-function closeSheet(){ $('#modalRoot').innerHTML=''; }
+function closeSheet(){ $('#modalRoot').innerHTML=''; unlockBodyScroll(); }
 let _sheetDragStartY=null, _sheetDragY=0;
 function sheetTouchStart(e){ _sheetDragStartY=e.touches[0].clientY; _sheetDragY=0; }
 function sheetTouchMove(e){
