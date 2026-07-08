@@ -665,11 +665,16 @@ function cacheSafeState(d){
 const DB = {
   load(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)) }catch(e){ return null } },
   save(d){
-    try{ localStorage.setItem(STORE_KEY, JSON.stringify(cacheSafeState(d))); }
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify(d)); return; }
     catch(e){
-      // Still not fatal even if this fails — Firebase is the real source of truth.
-      console.warn('Local cache save failed (storage full?):', e);
-      if(!_storageFullWarned){ _storageFullWarned=true; toast('⚠️ Device storage full — saving to team feed only, not cached locally'); }
+      // Ran out of local storage room. Fall back to caching without heavy photo blobs so
+      // text/tasks still load instantly next time — Firebase remains the source of truth
+      // and re-syncs full data (including photos) once it reconnects.
+      try{ localStorage.setItem(STORE_KEY, JSON.stringify(cacheSafeState(d))); }
+      catch(e2){
+        console.warn('Local cache save failed even without photos:', e2);
+        if(!_storageFullWarned){ _storageFullWarned=true; toast('⚠️ Device storage full — saving to team feed only, not cached locally'); }
+      }
     }
   }
 };
