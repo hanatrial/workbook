@@ -653,13 +653,21 @@
 /* ---------------- Storage adapter (swap to Firebase later) ------------- */
 const STORE_KEY = 'pic_workbook_v1';
 let _storageFullWarned=false;
+/* The local cache is just a fast-boot placeholder (Firebase re-syncs everything on load
+   when online) — so it never needs to hold full-size photo images. Stripping those out
+   keeps the cache small permanently instead of it slowly growing until it hits the
+   browser's per-site storage cap (typically 5–10MB) as the team posts more photos. */
+function cacheSafeState(d){
+  return { ...d,
+    photos: (d.photos||[]).map(p=>({...p, dataUrl:null})),
+    stories: (d.stories||[]).map(s=>({...s, photos:[]})) };
+}
 const DB = {
   load(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)) }catch(e){ return null } },
   save(d){
-    try{ localStorage.setItem(STORE_KEY, JSON.stringify(d)); }
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify(cacheSafeState(d))); }
     catch(e){
-      // Device's local cache is full (common once photo history grows large). This is not
-      // fatal — Firebase is the real source of truth — so don't let it block persist().
+      // Still not fatal even if this fails — Firebase is the real source of truth.
       console.warn('Local cache save failed (storage full?):', e);
       if(!_storageFullWarned){ _storageFullWarned=true; toast('⚠️ Device storage full — saving to team feed only, not cached locally'); }
     }
