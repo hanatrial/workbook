@@ -730,8 +730,17 @@ function isOnline(memberId){ return !!(presence[memberId] && presence[memberId].
    FIREBASE_CONFIG is null; nothing below ever runs in that case. */
 const SYNC_COLLECTIONS = ['stories','tasks','photos','members'];
 let lastSynced = { stories:{}, tasks:{}, photos:{}, members:{} };
+let firebaseSyncPrimed=false;
 function syncToFirebase(){
   if(!fbDb) return;
+  if(!firebaseSyncPrimed){
+    // We haven't finished pulling the real remote data yet. Pushing now would treat
+    // whatever's currently in memory (possibly a stale/incomplete local cache) as the
+    // "latest" version and overwrite the shared database with it — a real data-loss bug
+    // that happened once already. Local changes are still saved to localStorage by
+    // persist(); they'll sync once the initial pull completes.
+    return;
+  }
   SYNC_COLLECTIONS.forEach(coll=>{
     const items = state[coll]||[]; const seenIds = new Set();
     items.forEach(item=>{
@@ -766,6 +775,7 @@ function initDataSync(){
       lastSynced[coll] = {}; Object.keys(remote).forEach(id=>{ lastSynced[coll][id]=JSON.stringify(remote[id]); });
     })
   )).then(()=>{
+    firebaseSyncPrimed=true;
     DB.save(state); render();
     SYNC_COLLECTIONS.forEach(coll=>{
       fbDb.ref(coll).on('value', snap=>{
