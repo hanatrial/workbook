@@ -1,4 +1,3 @@
-<!-- build 20260712b -->
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -1175,7 +1174,7 @@ function viewUpdate(){
     const s=standupFor(m.id);
     return `<div class="card pad standup-card" style="border-top:5px solid ${m.color}">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">${avatar(m.id)}<b>${esc(m.name)}</b></div>
-      <textarea class="in standup-text" data-mid="${m.id}" placeholder="What has ${esc(m.name.split(' ')[0])} been up to the last 2 weeks?" oninput="onStandupInput(this)">${esc(s.text||'')}</textarea>
+      <textarea class="in standup-text" data-mid="${m.id}" placeholder="What has ${esc(m.name.split(' ')[0])} been up to the last 2 weeks? (Enter to save, Shift+Enter for a new line)" oninput="onStandupInput(this)" onkeydown="onStandupKeydown(event,this)">${esc(s.text||'')}</textarea>
     </div>`;
   }).join('');
   return `<div class="view-title"><div><h2>Update</h2><div class="sub">Everyone's notes before the meeting — tap "Reset" after to clear for next time</div></div></div>
@@ -1183,16 +1182,26 @@ function viewUpdate(){
   <div class="standup-grid">${cards}</div>`;
 }
 let _standupSaveTimers={};
+function saveStandupText(mid,text){
+  clearTimeout(_standupSaveTimers[mid]);
+  state.standup=state.standup||[];
+  let s=state.standup.find(x=>x.id===mid);
+  if(!s){ s={id:mid,text:'',updatedAt:0}; state.standup.push(s); }
+  s.text=text; s.updatedAt=Date.now();
+  persist();
+}
 function onStandupInput(el){
   const mid=el.dataset.mid, text=el.value;
   clearTimeout(_standupSaveTimers[mid]);
-  _standupSaveTimers[mid]=setTimeout(()=>{
-    state.standup=state.standup||[];
-    let s=state.standup.find(x=>x.id===mid);
-    if(!s){ s={id:mid,text:'',updatedAt:0}; state.standup.push(s); }
-    s.text=text; s.updatedAt=Date.now();
-    persist();
-  }, 500);
+  _standupSaveTimers[mid]=setTimeout(()=>saveStandupText(mid,text), 500);
+}
+function onStandupKeydown(e,el){
+  if(e.key==='Enter' && !e.shiftKey){
+    e.preventDefault();
+    saveStandupText(el.dataset.mid, el.value);
+    el.blur();
+    toast('Saved ✓');
+  }
 }
 function confirmResetStandup(){
   confirmSheet('Clear everyone\'s notes so the board is ready for next meeting? This can\'t be undone.', resetStandup, {title:'Reset for next meeting', confirmLabel:'Reset all'});
