@@ -229,6 +229,9 @@
   .seg button{flex:1;min-width:72px;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff;font-weight:600;font-size:13px;color:var(--muted)}
   .seg button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
   .who-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:9px}
+  .standup-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+  .standup-card{margin-bottom:0}
+  .standup-text{min-height:110px;resize:vertical}
   .who{display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 4px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:11px;font-weight:600}
   .who.on{border-color:var(--brand);background:#e6f5f3}
   .who .av{width:34px;height:34px;font-size:12px}
@@ -368,7 +371,9 @@
   nav{left:50%;right:auto;transform:translateX(-50%);bottom:16px;border-top:none;
     width:auto;max-width:calc(100% - 24px);gap:2px;padding:7px;border-radius:999px;
     background:rgba(251,248,242,.78);-webkit-backdrop-filter:blur(22px) saturate(1.6);backdrop-filter:blur(22px) saturate(1.6);
-    box-shadow:0 12px 34px -10px rgba(34,29,24,.3),var(--hair),var(--hi)}
+    box-shadow:0 12px 34px -10px rgba(34,29,24,.3),var(--hair),var(--hi);
+    overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  nav::-webkit-scrollbar{display:none}
   nav button{position:relative;flex:none;padding:8px 11px;border-radius:999px;font-size:9.5px;font-weight:600;color:var(--muted);transition:color .4s var(--ease)}
   .navdot{position:absolute;top:5px;right:12px;width:7px;height:7px;border-radius:50%;background:var(--danger);box-shadow:0 0 0 2px rgba(251,248,242,.9)}
   .mention-pop{position:absolute;bottom:100%;left:0;right:0;margin-bottom:8px;background:var(--card);border-radius:14px;box-shadow:inset 0 0 0 1px rgba(34,29,24,.06),inset 0 1px 0 rgba(255,255,255,.75),0 22px 46px -24px rgba(34,29,24,.3);display:none;overflow:hidden;z-index:20}
@@ -728,7 +733,7 @@ function isOnline(memberId){ return !!(presence[memberId] && presence[memberId].
    else in `state` that's shared (stories, tasks, photos, members) mirrors
    to Firebase automatically through persist(). Works fully offline when
    FIREBASE_CONFIG is null; nothing below ever runs in that case. */
-const SYNC_COLLECTIONS = ['stories','tasks','photos','members'];
+const SYNC_COLLECTIONS = ['stories','tasks','photos','members','standup'];
 let lastSynced = { stories:{}, tasks:{}, photos:{}, members:{} };
 let firebaseSyncPrimed=false;
 function syncToFirebase(){
@@ -794,7 +799,7 @@ function seed(){
   const members = TEAM_NAMES.map((name,i)=>(
     { id:'m'+(i+1), name, role:'Sulawesi Terdepan', color:AVATAR_COLORS[i%AVATAR_COLORS.length] }
   ));
-  return { version:1, members, currentUserId:null, photos:[], tasks:[], stories:[], lastSeen:{cerita:0,tasks:0} };
+  return { version:1, members, currentUserId:null, photos:[], tasks:[], stories:[], standup:[], lastSeen:{cerita:0,tasks:0} };
 }
 let state = DB.load() || seed();      // init AFTER seed()/TEAM_NAMES are defined (avoids TDZ on fresh load)
 function persist(){ DB.save(state); syncToFirebase(); }
@@ -870,12 +875,13 @@ let calMonth = (()=>{ const d=new Date(); d.setDate(1); d.setHours(0,0,0,0); ret
 function go(r){ route=r; closeNotifPanel(); render(); window.scrollTo(0,0); }
 
 const NAV = [
-  {id:'cerita',label:'Cerita', svg:'story'},
-  {id:'feed', label:'Photos', svg:'photo'},
-  {id:'tasks',label:'Tasks',  svg:'check'},
-  {id:'board',label:'Board',  svg:'board'},
-  {id:'dash', label:'Report', svg:'chart'},
-  {id:'team', label:'Team',   svg:'people'},
+  {id:'cerita', label:'Cerita', svg:'story'},
+  {id:'feed',   label:'Photos', svg:'photo'},
+  {id:'tasks',  label:'Tasks',  svg:'check'},
+  {id:'board',  label:'Board',  svg:'board'},
+  {id:'update', label:'Update', svg:'note'},
+  {id:'dash',   label:'Report', svg:'chart'},
+  {id:'team',   label:'Team',   svg:'people'},
 ];
 function navIcon(k){
   const I={
@@ -885,6 +891,7 @@ function navIcon(k){
     board:'<rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="11" rx="1.5"/><rect x="17" y="4" width="4" height="14" rx="1.5"/>',
     chart:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
     people:'<circle cx="8" cy="9" r="3"/><circle cx="17" cy="10" r="2.4"/><path d="M2.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5M15 19c0-2 1-3.4 3.2-3.4S21.5 17 21.5 19"/>',
+    note:'<path d="M5 4h14v13l-4 4H5z"/><path d="M15 21v-4h4"/><path d="M8.5 9h7M8.5 13h4"/>',
   };
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${I[k]}</svg>`;
 }
@@ -978,6 +985,7 @@ function render(){
   else if(route==='feed') app.innerHTML=viewFeed();
   else if(route==='tasks') app.innerHTML=viewTasks();
   else if(route==='board') app.innerHTML=viewBoard();
+  else if(route==='update') app.innerHTML=viewUpdate();
   else if(route==='dash') app.innerHTML=viewDash();
   else if(route==='team') app.innerHTML=viewTeam();
   revealCards(_lastRoute!==route); _lastRoute=route;
@@ -1156,6 +1164,40 @@ function boardCard(t,key){
     ${repeatBadge}
     <div class="mv">${mv}</div>
   </div>`;
+}
+
+/* ---- UPDATE (per-person notes board, reset before/after each meeting) ---- */
+function standupFor(id){ return (state.standup||[]).find(x=>x.id===id) || {id, text:'', updatedAt:0}; }
+function viewUpdate(){
+  const cards=state.members.map(m=>{
+    const s=standupFor(m.id);
+    return `<div class="card pad standup-card" style="border-top:5px solid ${m.color}">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">${avatar(m.id)}<b>${esc(m.name)}</b></div>
+      <textarea class="in standup-text" data-mid="${m.id}" placeholder="What has ${esc(m.name.split(' ')[0])} been up to the last 2 weeks?" oninput="onStandupInput(this)">${esc(s.text||'')}</textarea>
+    </div>`;
+  }).join('');
+  return `<div class="view-title"><div><h2>Update</h2><div class="sub">Everyone's notes before the meeting — tap "Reset" after to clear for next time</div></div></div>
+  <button class="btn ghost" onclick="confirmResetStandup()" style="margin-bottom:14px">🧹 Reset all for next meeting</button>
+  <div class="standup-grid">${cards}</div>`;
+}
+let _standupSaveTimers={};
+function onStandupInput(el){
+  const mid=el.dataset.mid, text=el.value;
+  clearTimeout(_standupSaveTimers[mid]);
+  _standupSaveTimers[mid]=setTimeout(()=>{
+    state.standup=state.standup||[];
+    let s=state.standup.find(x=>x.id===mid);
+    if(!s){ s={id:mid,text:'',updatedAt:0}; state.standup.push(s); }
+    s.text=text; s.updatedAt=Date.now();
+    persist();
+  }, 500);
+}
+function confirmResetStandup(){
+  confirmSheet('Clear everyone\'s notes so the board is ready for next meeting? This can\'t be undone.', resetStandup, {title:'Reset for next meeting', confirmLabel:'Reset all'});
+}
+function resetStandup(){
+  state.standup=state.members.map(m=>({id:m.id, text:'', updatedAt:Date.now()}));
+  persist(); closeSheet(); render(); toast('Board cleared for next meeting');
 }
 
 /* ---- DASHBOARD ---- */
@@ -1915,6 +1957,7 @@ function saveStory(){
 
 /* ---- Boot ---- */
 if(!state.stories) state.stories=[];      // migrate older saved data
+if(!state.standup) state.standup=[];
 if(!state.lastSeen) state.lastSeen={cerita:0,tasks:0};
 (()=>{ const pinks=['#ec4899','#d946ef','#f43f5e','#db2777','#e11d48']; let changed=false;
   state.members.forEach((m,i)=>{ if(pinks.includes(String(m.color||'').toLowerCase())){ m.color=AVATAR_COLORS[i%AVATAR_COLORS.length]; changed=true; } });
