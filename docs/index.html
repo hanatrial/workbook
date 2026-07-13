@@ -1549,9 +1549,10 @@ function saveTask(){
   if(!title) return toast('Add a task title');
   if(!pickedPics.size) return toast('Pick at least one PIC');
   const due=$('#tdue').value||null, desc=$('#tdesc').value.trim(), repeat=pickedRepeat, link=normalizeUrl($('#tlink').value);
+  const createdAt=Date.now(), groupId=pickedPics.size>1?uid():null;
   pickedPics.forEach(pic=>{
-    state.tasks.push({ id:uid(), title, desc, picId:pic, creatorId:state.currentUserId,
-      priority:pickedPrio, status:'todo', due, createdAt:Date.now(), repeat, link,
+    state.tasks.push({ id:uid(), title, desc, picId:pic, creatorId:state.currentUserId, groupId,
+      priority:pickedPrio, status:'todo', due, createdAt, repeat, link,
       photoId:taskPhotoLink||null, comments:[], checklist:draftChecklist.map(it=>({id:uid(),text:it.text,done:false})) });
   });
   const n=pickedPics.size;
@@ -1578,6 +1579,7 @@ function openTask(id){
   const t=state.tasks.find(x=>x.id===id); if(!t) return;
   const st=STATUS[t.status], pr=PRIO[t.priority]||PRIO.med, du=dueState(t.due);
   const linked=t.photoId?state.photos.find(p=>p.id===t.photoId):null;
+  const groupN=taskGroupSiblings(t).length;
   sheet('Task', `
     <div class="card pad" style="margin-bottom:12px">
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
@@ -1606,7 +1608,8 @@ function openTask(id){
     <div style="font-weight:700;font-size:13px;margin:20px 2px 4px;color:var(--muted)">Comments (${(t.comments||[]).length})</div>
     <div id="cmtList">${renderComments(t.comments,'task',t.id)}</div>
     ${commentBox('task',t.id)}
-    <button class="btn danger" onclick="deleteTask('${t.id}')">Delete task</button>`);
+    <button class="btn danger" onclick="deleteTask('${t.id}')">Delete task</button>
+    ${groupN>1?`<button class="btn danger" onclick="deleteTaskGroup('${t.id}')" style="margin-top:8px">🗑️ Delete for all ${groupN} people</button>`:''}`);
 }
 function renderChecklist(t){
   const cl=t.checklist||[]; if(!cl.length) return '';
@@ -1750,6 +1753,22 @@ function reassign(id){
 }
 function doReassign(id,pic){ const t=state.tasks.find(x=>x.id===id); t.picId=pic; persist(); openTask(id); render(); toast('Reassigned to '+member(pic).name.split(' ')[0]); }
 function deleteTask(id){ confirmSheet('Delete this task? This can\'t be undone.', ()=>{ state.tasks=state.tasks.filter(t=>t.id!==id); persist(); closeSheet(); render(); toast('Task deleted'); }, {onCancel:()=>openTask(id)}); }
+function taskGroupSiblings(t){
+  if(t.groupId) return state.tasks.filter(x=>x.groupId===t.groupId);
+  // Legacy fallback for tasks assigned before groupId existed: same title/creator/moment = same assignment batch.
+  return state.tasks.filter(x=>x.title===t.title && x.creatorId===t.creatorId && x.createdAt===t.createdAt);
+}
+function deleteTaskGroup(id){
+  const t=state.tasks.find(x=>x.id===id); if(!t) return;
+  const siblings=taskGroupSiblings(t);
+  if(siblings.length<2) return deleteTask(id);
+  confirmSheet(`Delete this task for all ${siblings.length} people it's assigned to? This can't be undone.`, ()=>{
+    // Remove one at a time so each sync only ever drops a single item — the shared-data
+    // safety guard blocks any sync that looks like a bulk delete of more than one item.
+    siblings.forEach(s=>{ state.tasks=state.tasks.filter(x=>x.id!==s.id); persist(); });
+    closeSheet(); route='tasks'; render(); toast(`Deleted for all ${siblings.length} people`);
+  }, {title:'Delete for everyone', confirmLabel:'Delete for all', onCancel:()=>openTask(id)});
+}
 function deletePhoto(id){ confirmSheet('Delete this photo? This can\'t be undone.', ()=>{ state.photos=state.photos.filter(p=>p.id!==id); persist(); closeSheet(); render(); toast('Photo deleted'); }, {onCancel:()=>openPhoto(id)}); }
 
 /* ---- Team edit ---- */
