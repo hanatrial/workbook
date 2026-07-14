@@ -1603,6 +1603,12 @@ function openTask(id){
       <button onclick="setStatus('${t.id}','doing')" class="${t.status==='doing'?'on':''}">In Progress</button>
       <button onclick="setStatus('${t.id}','done')" class="${t.status==='done'?'on':''}">Done ✓</button>
     </div>
+    ${groupN>1?`<div style="font-size:11px;font-weight:700;color:var(--muted);margin:12px 2px 4px">SET FOR ALL ${groupN} PEOPLE</div>
+    <div class="seg">
+      <button onclick="setStatusGroup('${t.id}','todo')">To Do</button>
+      <button onclick="setStatusGroup('${t.id}','doing')">In Progress</button>
+      <button onclick="setStatusGroup('${t.id}','done')">Done ✓</button>
+    </div>`:''}
     <button class="btn ghost" onclick="reassign('${t.id}')" style="margin-top:12px">🔄 Reassign PIC</button>
     <button class="btn ghost" onclick="shareTaskToWhatsApp('${t.id}')" style="margin-top:8px">📤 Share task</button>
     <div style="font-weight:700;font-size:13px;margin:20px 2px 4px;color:var(--muted)">Comments (${(t.comments||[]).length})</div>
@@ -1739,6 +1745,18 @@ function setStatus(id,s){
   let msg='Marked '+STATUS[s].t;
   if(s==='done' && t.repeat && t.repeat!=='none'){ const nd=spawnNextOccurrence(t); msg+=' — next one set for '+fmtDate(nd); }
   persist(); openTask(id); render(); toast(msg);
+}
+function setStatusGroup(id,s){
+  const t=state.tasks.find(x=>x.id===id); if(!t) return;
+  const siblings=taskGroupSiblings(t);
+  if(siblings.length<2) return setStatus(id,s);
+  let spawned=0;
+  siblings.forEach(x=>{
+    x.status=s;
+    if(s==='done' && x.repeat && x.repeat!=='none'){ spawnNextOccurrence(x); spawned++; }
+  });
+  persist(); openTask(id); render();
+  toast(`Marked ${STATUS[s].t} for all ${siblings.length} people${spawned?' — next occurrences set':''}`);
 }
 function moveTask(id,s){
   const t=state.tasks.find(x=>x.id===id); if(!t)return; t.status=s;
