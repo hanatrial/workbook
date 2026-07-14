@@ -267,8 +267,8 @@
   .reply-chip.show{display:flex}
   .reply-chip b{color:var(--brand-ink)}
   .reply-chip button{color:var(--muted);font-size:15px;line-height:1}
-  .cmt-box{display:flex;gap:8px;align-items:center;margin-top:12px}
-  .cmt-box input{flex:1;padding:11px 13px;border:1px solid var(--line);border-radius:999px;background:#fff;outline:none}
+  .cmt-box{display:flex;gap:8px;align-items:flex-end;margin-top:12px}
+  .cmt-box textarea{flex:1;padding:11px 13px;border:1px solid var(--line);border-radius:18px;background:#fff;outline:none;resize:none;max-height:120px;overflow-y:auto;font-family:inherit;line-height:1.4}
   .cmt-box button{width:42px;height:42px;border-radius:50%;background:var(--brand);color:#fff;flex:none;display:flex;align-items:center;justify-content:center}
   .detail-img{width:100%;border-radius:14px;margin-bottom:12px;display:block}
 
@@ -533,7 +533,7 @@
 
   /* ---- Comments, reactions, toast ---- */
   .cmt{border-bottom:1px solid var(--line)}
-  .cmt-box input{border:none;background:#fff;box-shadow:var(--hair),var(--hi)}
+  .cmt-box textarea{border:none;background:#fff;box-shadow:var(--hair),var(--hi)}
   .cmt-box button{background:linear-gradient(145deg,var(--brand),var(--brand-2));box-shadow:0 8px 18px -8px rgba(11,107,94,.55);transition:transform .3s var(--spring)}
   .cmt-box button:active{transform:scale(.9)}
   .toast{background:var(--ink);border-radius:999px;box-shadow:0 16px 34px -12px rgba(34,29,24,.55);font-weight:600}
@@ -1706,16 +1706,33 @@ function renderComments(list,kind,id){
     const parent = c.replyToId ? list.find(x=>x.id===c.replyToId) : null;
     const replyTag = parent ? `<div class="cmt-reply-tag">↳ Replying to <b>${esc(member(parent.authorId)?.name.split(' ')[0]||'?')}</b>: "${esc((parent.text||'(photo)').slice(0,40))}${parent.text&&parent.text.length>40?'…':''}"</div>` : '';
     const nameEsc = esc(member(c.authorId)?.name.split(' ')[0]||'?').replace(/'/g,"\\'");
+    const canDelete = c.authorId===state.currentUserId;
     return `<div class="cmt">${avatar(c.authorId,'')}
     <div class="cb">${replyTag}<div class="ch"><b>${esc(member(c.authorId)?.name.split(' ')[0]||'?')}</b><time>${timeAgo(c.createdAt)}</time></div><p>${renderMentions(esc(c.text))}</p>
-    <button type="button" class="cmt-reply-btn" onclick="startReply('${c.id}','${nameEsc}','${kind}','${id}')">Reply</button></div></div>`;
+    <button type="button" class="cmt-reply-btn" onclick="startReply('${c.id}','${nameEsc}','${kind}','${id}')">Reply</button>${canDelete?`<button type="button" class="cmt-reply-btn" style="color:var(--danger);margin-left:10px" onclick="deleteComment('${kind}','${id}','${c.id}')">Delete</button>`:''}</div></div>`;
   }).join('');
 }
 function handleCommentKey(e,kind,id){
   if(e.key!=='Enter') return;
   const pop=$('#mentionPop');
   if(pop && pop.classList.contains('show')){ e.preventDefault(); const fid=pop.dataset.firstId; if(fid) pickMention(fid); return; }
+  if(e.shiftKey) return; // let the newline through
+  e.preventDefault();
   addComment(kind,id);
+}
+function autoGrowCmt(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
+function commentObj(kind,id){
+  return kind==='photo' ? state.photos.find(p=>p.id===id)
+       : kind==='story' ? state.stories.find(s=>s.id===id)
+       : state.tasks.find(t=>t.id===id);
+}
+function deleteComment(kind,id,commentId){
+  const obj=commentObj(kind,id); if(!obj) return;
+  const reopen = kind==='task' ? ()=>openTask(id) : kind==='photo' ? ()=>openPhoto(id) : ()=>openStory(id);
+  confirmSheet('Delete this comment? This can\'t be undone.', ()=>{
+    obj.comments=(obj.comments||[]).filter(c=>c.id!==commentId);
+    persist(); reopen(); render();
+  }, {onCancel:reopen});
 }
 let replyingTo=null; // {id, name}
 function startReply(commentId,name,kind,id){
@@ -1729,19 +1746,17 @@ function commentBox(kind,id){
   replyingTo=null;
   return `<div style="position:relative"><div class="mention-pop" id="mentionPop"></div>
     <div class="reply-chip" id="replyChip"></div>
-    <div class="cmt-box"><input id="cmtInput" placeholder="Write a comment… (@ to mention)" autocomplete="off" oninput="onMentionInput(this)" onkeydown="handleCommentKey(event,'${kind}','${id}')" onblur="setTimeout(closeMentionPop,150)"/>
+    <div class="cmt-box"><textarea id="cmtInput" rows="1" placeholder="Write a comment… (@ to mention, Shift+Enter for a new line)" oninput="onMentionInput(this);autoGrowCmt(this)" onkeydown="handleCommentKey(event,'${kind}','${id}')" onblur="setTimeout(closeMentionPop,150)"></textarea>
     <button onclick="addComment('${kind}','${id}')" aria-label="Send comment"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></button></div></div>`;
 }
 function addComment(kind,id){
   if(needMe()) return;
   const inp=$('#cmtInput'); const txt=inp.value.trim(); if(!txt) return;
-  const obj = kind==='photo' ? state.photos.find(p=>p.id===id)
-            : kind==='story' ? state.stories.find(s=>s.id===id)
-            : state.tasks.find(t=>t.id===id);
+  const obj=commentObj(kind,id);
   if(!obj) return; obj.comments=obj.comments||[];
   obj.comments.push({id:uid(),authorId:state.currentUserId,text:txt,createdAt:Date.now(),replyToId:replyingTo?replyingTo.id:null});
   cancelReply();
-  persist(); $('#cmtList').innerHTML=renderComments(obj.comments,kind,id); inp.value=''; closeMentionPop();
+  persist(); $('#cmtList').innerHTML=renderComments(obj.comments,kind,id); inp.value=''; inp.style.height='auto'; closeMentionPop();
   $('#cmtList').lastElementChild?.scrollIntoView({behavior:'smooth',block:'nearest'});
   render(); // refresh counts behind sheet
 }
