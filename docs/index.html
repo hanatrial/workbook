@@ -238,6 +238,12 @@
   .seg button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
   .who-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:9px}
   .standup-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+  .ship-card{margin-bottom:14px;border-left:5px solid #f59e0b}
+  .ship-card.arrived{border-left-color:var(--ok,#137a5a);background:#f0faf5}
+  .ship-dates{display:flex;gap:10px;margin-top:12px}
+  .ship-dates>div{flex:1;background:rgba(34,29,24,.045);border-radius:12px;padding:8px 10px}
+  .ship-dates small{display:block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .ship-dates b{font-size:13.5px}
   .standup-card{margin-bottom:0}
   .standup-card b{font-size:13px}
   .standup-text{min-height:220px;resize:vertical}
@@ -743,7 +749,7 @@ function isOnline(memberId){ return !!(presence[memberId] && presence[memberId].
    else in `state` that's shared (stories, tasks, photos, members) mirrors
    to Firebase automatically through persist(). Works fully offline when
    FIREBASE_CONFIG is null; nothing below ever runs in that case. */
-const SYNC_COLLECTIONS = ['stories','tasks','photos','members','standup'];
+const SYNC_COLLECTIONS = ['stories','tasks','photos','members','standup','shipments'];
 let lastSynced = { stories:{}, tasks:{}, photos:{}, members:{} };
 let firebaseSyncPrimed=false;
 function syncToFirebase(){
@@ -809,7 +815,7 @@ function seed(){
   const members = TEAM_NAMES.map((name,i)=>(
     { id:'m'+(i+1), name, role:'Sulawesi Terdepan', color:AVATAR_COLORS[i%AVATAR_COLORS.length] }
   ));
-  return { version:1, members, currentUserId:null, photos:[], tasks:[], stories:[], standup:[], lastSeen:{cerita:0,tasks:0} };
+  return { version:1, members, currentUserId:null, photos:[], tasks:[], stories:[], standup:[], shipments:[], lastSeen:{cerita:0,tasks:0} };
 }
 let state = DB.load() || seed();      // init AFTER seed()/TEAM_NAMES are defined (avoids TDZ on fresh load)
 function persist(){ DB.save(state); syncToFirebase(); }
@@ -890,6 +896,7 @@ const NAV = [
   {id:'tasks',  label:'Tasks',  svg:'check'},
   {id:'board',  label:'Board',  svg:'board'},
   {id:'update', label:'Update', svg:'note'},
+  {id:'ship',   label:'Ship',   svg:'ship'},
   {id:'dash',   label:'Report', svg:'chart'},
   {id:'team',   label:'Team',   svg:'people'},
 ];
@@ -902,6 +909,7 @@ function navIcon(k){
     chart:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
     people:'<circle cx="8" cy="9" r="3"/><circle cx="17" cy="10" r="2.4"/><path d="M2.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5M15 19c0-2 1-3.4 3.2-3.4S21.5 17 21.5 19"/>',
     note:'<path d="M5 4h14v13l-4 4H5z"/><path d="M15 21v-4h4"/><path d="M8.5 9h7M8.5 13h4"/>',
+    ship:'<path d="M4 15l8-3 8 3-2 5H6z"/><path d="M12 12V5M8 8l4-3 4 3"/><path d="M2 20c1.5 1 3 1 4.5 0s3-1 4.5 0 3 1 4.5 0 3-1 4.5 0"/>',
   };
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${I[k]}</svg>`;
 }
@@ -996,6 +1004,7 @@ function render(){
   else if(route==='tasks') app.innerHTML=viewTasks();
   else if(route==='board') app.innerHTML=viewBoard();
   else if(route==='update') app.innerHTML=viewUpdate();
+  else if(route==='ship') app.innerHTML=viewShipments();
   else if(route==='dash') app.innerHTML=viewDash();
   else if(route==='team') app.innerHTML=viewTeam();
   revealCards(_lastRoute!==route); _lastRoute=route;
@@ -1227,6 +1236,72 @@ function resetStandup(){
   persist(); closeSheet(); render(); toast('Board cleared for next meeting');
 }
 
+/* ---- SHIPMENTS (vessel recap: ETD / ETA / Closing per destination) ---- */
+function shipmentArrived(s){
+  if(!s.eta) return false;
+  const today=new Date(); today.setHours(0,0,0,0);
+  return new Date(s.eta+'T00:00:00') <= today;
+}
+function viewShipments(){
+  const list=(state.shipments||[]).slice().sort((a,b)=>{
+    const aa=shipmentArrived(a), ba=shipmentArrived(b);
+    if(aa!==ba) return aa?1:-1;                       // sailing first, arrived at the bottom
+    return (a.eta||'9999') < (b.eta||'9999') ? -1 : 1; // soonest ETA first
+  });
+  const cards=list.length?list.map(s=>{
+    const arrived=shipmentArrived(s);
+    return `<div class="card pad ship-card ${arrived?'arrived':''}">
+      <div style="display:flex;align-items:flex-start;gap:8px">
+        <div style="flex:1">
+          <b style="font-size:15px">🚢 ${esc(s.vessel)}</b>
+          ${arrived?`<span class="pill done" style="margin-left:8px">Arrived ✓</span>`:`<span class="pill doing" style="margin-left:8px">Sailing</span>`}
+          ${s.destinations?`<div style="font-size:12.5px;color:var(--muted);margin-top:4px">📍 ${esc(s.destinations)}</div>`:''}
+        </div>
+        <button class="link-btn" style="color:var(--danger)" onclick="deleteShipment('${s.id}')">Delete</button>
+      </div>
+      <div class="ship-dates">
+        <div><small>Closing</small><b>${s.closing?fmtDate(s.closing):'—'}</b></div>
+        <div><small>ETD</small><b>${s.etd?fmtDate(s.etd):'—'}</b></div>
+        <div><small>ETA</small><b>${s.eta?fmtDate(s.eta):'—'}</b></div>
+      </div>
+      <div style="color:var(--muted);font-size:11px;margin-top:8px">Added by ${esc(member(s.creatorId)?.name.split(' ')[0]||'—')} · ${timeAgo(s.createdAt)}</div>
+    </div>`;
+  }).join(''):`<div class="card pad" style="color:var(--muted);font-size:13.5px">No shipments yet. Add the first vessel recap 🚢</div>`;
+  return `<div class="view-title"><div><h2>Shipment</h2><div class="sub">Vessel recap — closing, ETD & ETA per destination</div></div></div>
+  <button class="btn ghost" onclick="openShipmentForm()" style="margin-bottom:14px">➕ Add shipment</button>
+  ${cards}`;
+}
+function openShipmentForm(){
+  if(needMe()) return;
+  sheet('Add shipment', `
+    <label class="f">Vessel / voyage</label>
+    <input class="in" id="shVessel" placeholder="e.g. KM. Tanto Tenang voy 284"/>
+    <label class="f">Destinations (optional)</label>
+    <input class="in" id="shDest" placeholder="e.g. BSP Makassar, BSP Makassar (Polos)"/>
+    <label class="f">Closing date</label>
+    <input class="in" type="date" id="shClosing"/>
+    <label class="f">ETD (departure)</label>
+    <input class="in" type="date" id="shEtd"/>
+    <label class="f">ETA (arrival)</label>
+    <input class="in" type="date" id="shEta"/>
+    <button class="btn primary" onclick="saveShipment()">Save shipment</button>`);
+}
+function saveShipment(){
+  const vessel=$('#shVessel').value.trim();
+  if(!vessel) return toast('Add the vessel name first');
+  state.shipments=state.shipments||[];
+  state.shipments.push({ id:uid(), vessel, destinations:$('#shDest').value.trim(),
+    closing:$('#shClosing').value||null, etd:$('#shEtd').value||null, eta:$('#shEta').value||null,
+    creatorId:state.currentUserId, createdAt:Date.now() });
+  persist(); closeSheet(); route='ship'; render(); toast('Shipment added 🚢');
+}
+function deleteShipment(id){
+  confirmSheet('Delete this shipment recap? This can\'t be undone.', ()=>{
+    state.shipments=(state.shipments||[]).filter(s=>s.id!==id);
+    persist(); closeSheet(); render(); toast('Shipment deleted');
+  });
+}
+
 /* ---- DASHBOARD ---- */
 function viewDash(){
   const T=state.tasks, done=T.filter(t=>t.status==='done').length, doing=T.filter(t=>t.status==='doing').length, todo=T.filter(t=>t.status==='todo').length;
@@ -1455,6 +1530,7 @@ function openAdd(){
   if(needMe()) return;
   if(route==='cerita') return openStoryForm();
   if(route==='tasks'||route==='board') return openTaskForm();
+  if(route==='ship') return openShipmentForm();
   sheet('Tambah', `<div class="add-menu" style="display:flex;flex-direction:column;gap:10px">
     <button class="lead" onclick="openStoryForm()"><span class="am-ic">💬</span><span>Write a family Cerita<small>News, fun moments, anything</small></span></button>
     <button onclick="openPhotoForm()"><span class="am-ic">📷</span><span>Share a work photo<small>Display, stock, store visit</small></span></button>
@@ -2036,6 +2112,7 @@ function saveStory(){
 /* ---- Boot ---- */
 if(!state.stories) state.stories=[];      // migrate older saved data
 if(!state.standup) state.standup=[];
+if(!state.shipments) state.shipments=[];
 if(!state.lastSeen) state.lastSeen={cerita:0,tasks:0};
 (()=>{ const pinks=['#ec4899','#d946ef','#f43f5e','#db2777','#e11d48']; let changed=false;
   state.members.forEach((m,i)=>{ if(pinks.includes(String(m.color||'').toLowerCase())){ m.color=AVATAR_COLORS[i%AVATAR_COLORS.length]; changed=true; } });
