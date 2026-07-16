@@ -1271,9 +1271,31 @@ function viewShipments(){
   <button class="btn ghost" onclick="openShipmentForm()" style="margin-bottom:14px">➕ Add shipment</button>
   ${cards}`;
 }
+function parseShipmentPaste(el){
+  const text=el.value; if(!text.trim()) return;
+  const toISO=d=>{ const m=d.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/); return m?`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`:null; };
+  const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
+  let vessel='', dest='', etd=null, eta=null, closing=null;
+  lines.forEach(l=>{
+    const low=l.toLowerCase();
+    if(/^(distributor|dist|destination|tujuan)\b/.test(low)) dest=l.replace(/^[^:]*:\s*/,'').trim();
+    else if(/^etd\b/.test(low)) etd=toISO(l);
+    else if(/^eta\b/.test(low)) eta=toISO(l);
+    else if(/^closing\b/.test(low)) closing=toISO(l);
+    else if(!vessel) vessel=l;
+  });
+  if(vessel) $('#shVessel').value=vessel;
+  if(dest) $('#shDest').value=dest;
+  if(etd) $('#shEtd').value=etd;
+  if(eta) $('#shEta').value=eta;
+  if(closing) $('#shClosing').value=closing;
+  if(vessel||dest||etd||eta||closing){ el.value=''; toast('Recap filled in ✓ — check & save'); }
+}
 function openShipmentForm(){
   if(needMe()) return;
   sheet('Add shipment', `
+    <label class="f">Paste recap (optional — auto-fills the fields below)</label>
+    <textarea class="in" id="shPaste" rows="4" placeholder="Distributor: BSP Makassar&#10;KM. Tanto Tenang voy 284&#10;Etd 18/07/2026&#10;Eta 22/07/2026&#10;Closing 17/07/2026" oninput="parseShipmentPaste(this)"></textarea>
     <label class="f">Vessel / voyage</label>
     <input class="in" id="shVessel" placeholder="e.g. KM. Tanto Tenang voy 284"/>
     <label class="f">Destinations (optional)</label>
