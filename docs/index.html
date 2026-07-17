@@ -238,6 +238,12 @@
   .seg button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
   .who-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:9px}
   .standup-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+  .sched-h2{font-size:18px;margin:4px 0 10px}
+  .sched-h3{font-size:15px;margin:16px 0 6px;color:var(--brand-ink,var(--brand))}
+  .sched-p{font-size:13px;margin:6px 0;color:var(--ink)}
+  .sched-table{border-collapse:collapse;font-size:12.5px;min-width:100%}
+  .sched-table th,.sched-table td{border:1px solid var(--line);padding:6px 9px;text-align:left;white-space:nowrap}
+  .sched-table th{background:rgba(34,29,24,.05);font-weight:700}
   .ship-card{margin-bottom:14px;border-left:5px solid #f59e0b}
   .ship-card.arrived{border-left-color:var(--ok,#137a5a);background:#f0faf5}
   .ship-dates{display:flex;gap:10px;margin-top:12px}
@@ -749,7 +755,7 @@ function isOnline(memberId){ return !!(presence[memberId] && presence[memberId].
    else in `state` that's shared (stories, tasks, photos, members) mirrors
    to Firebase automatically through persist(). Works fully offline when
    FIREBASE_CONFIG is null; nothing below ever runs in that case. */
-const SYNC_COLLECTIONS = ['stories','tasks','photos','members','standup','shipments'];
+const SYNC_COLLECTIONS = ['stories','tasks','photos','members','standup','shipments','schedreport'];
 let lastSynced = { stories:{}, tasks:{}, photos:{}, members:{} };
 let firebaseSyncPrimed=false;
 function syncToFirebase(){
@@ -815,7 +821,7 @@ function seed(){
   const members = TEAM_NAMES.map((name,i)=>(
     { id:'m'+(i+1), name, role:'Sulawesi Terdepan', color:AVATAR_COLORS[i%AVATAR_COLORS.length] }
   ));
-  return { version:1, members, currentUserId:null, photos:[], tasks:[], stories:[], standup:[], shipments:[], lastSeen:{cerita:0,tasks:0} };
+  return { version:1, members, currentUserId:null, photos:[], tasks:[], stories:[], standup:[], shipments:[], schedreport:[], lastSeen:{cerita:0,tasks:0} };
 }
 let state = DB.load() || seed();      // init AFTER seed()/TEAM_NAMES are defined (avoids TDZ on fresh load)
 function persist(){ DB.save(state); syncToFirebase(); }
@@ -897,6 +903,7 @@ const NAV = [
   {id:'board',  label:'Board',  svg:'board'},
   {id:'update', label:'Update', svg:'note'},
   {id:'ship',   label:'Ship',   svg:'ship'},
+  {id:'sched',  label:'Sched',  svg:'cal'},
   {id:'dash',   label:'Report', svg:'chart'},
   {id:'team',   label:'Team',   svg:'people'},
 ];
@@ -910,6 +917,7 @@ function navIcon(k){
     people:'<circle cx="8" cy="9" r="3"/><circle cx="17" cy="10" r="2.4"/><path d="M2.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5M15 19c0-2 1-3.4 3.2-3.4S21.5 17 21.5 19"/>',
     note:'<path d="M5 4h14v13l-4 4H5z"/><path d="M15 21v-4h4"/><path d="M8.5 9h7M8.5 13h4"/>',
     ship:'<path d="M4 15l8-3 8 3-2 5H6z"/><path d="M12 12V5M8 8l4-3 4 3"/><path d="M2 20c1.5 1 3 1 4.5 0s3-1 4.5 0 3 1 4.5 0 3-1 4.5 0"/>',
+    cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/><path d="M8 14h3M8 17h5"/>',
   };
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${I[k]}</svg>`;
 }
@@ -1005,6 +1013,7 @@ function render(){
   else if(route==='board') app.innerHTML=viewBoard();
   else if(route==='update') app.innerHTML=viewUpdate();
   else if(route==='ship') app.innerHTML=viewShipments();
+  else if(route==='sched') app.innerHTML=viewSchedShip();
   else if(route==='dash') app.innerHTML=viewDash();
   else if(route==='team') app.innerHTML=viewTeam();
   revealCards(_lastRoute!==route); _lastRoute=route;
@@ -1322,6 +1331,65 @@ function deleteShipment(id){
     state.shipments=(state.shipments||[]).filter(s=>s.id!==id);
     persist(); closeSheet(); render(); toast('Shipment deleted');
   });
+}
+
+/* ---- SCHEDULE SHIP (rendered markdown report from the automated Jakarta schedule checker) ---- */
+function schedReport(){ return (state.schedreport||[]).find(x=>x.id==='latest')||null; }
+function renderScheduleMd(md){
+  const lines=String(md).split('\n');
+  let html='', tableRows=[], inTable=false;
+  const inline=s=>esc(s)
+    .replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>')
+    .replace(/_([^_]+)_/g,'<em>$1</em>');
+  const flushTable=()=>{
+    if(!tableRows.length){ inTable=false; return; }
+    const head=tableRows[0], body=tableRows.slice(1);
+    html+=`<div style="overflow-x:auto;margin:8px 0 14px"><table class="sched-table"><thead><tr>${head.map(c=>`<th>${inline(c)}</th>`).join('')}</tr></thead><tbody>${body.map(r=>`<tr>${r.map(c=>`<td>${inline(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+    tableRows=[]; inTable=false;
+  };
+  lines.forEach(raw=>{
+    const l=raw.trim();
+    if(l.startsWith('|')){
+      const cells=l.replace(/^\||\|$/g,'').split('|').map(c=>c.trim());
+      if(cells.every(c=>/^:?-{2,}:?$/.test(c))) return;   // separator row
+      inTable=true; tableRows.push(cells); return;
+    }
+    if(inTable) flushTable();
+    if(!l) return;
+    if(l.startsWith('## ')) html+=`<h3 class="sched-h3">${inline(l.slice(3))}</h3>`;
+    else if(l.startsWith('# ')) html+=`<h2 class="sched-h2">${inline(l.slice(2))}</h2>`;
+    else html+=`<p class="sched-p">${inline(l)}</p>`;
+  });
+  if(inTable) flushTable();
+  return html;
+}
+function viewSchedShip(){
+  const r=schedReport();
+  const body=r&&r.md
+    ? `<div class="card pad" style="margin-bottom:14px">
+        <div style="color:var(--muted);font-size:12px;margin-bottom:10px">Updated ${timeAgo(r.updatedAt)} by ${esc(member(r.authorId)?.name.split(' ')[0]||'—')}</div>
+        ${renderScheduleMd(r.md)}
+      </div>`
+    : `<div class="card pad" style="color:var(--muted);font-size:13.5px">No schedule report yet. Paste the Monday/Thursday Jakarta schedule report here 👇</div>`;
+  return `<div class="view-title"><div><h2>Schedule Ship</h2><div class="sub">Jakarta sailing schedules — Meratus, Tanto & SPIL</div></div></div>
+  <button class="btn ghost" onclick="openSchedPaste()" style="margin-bottom:14px">📋 Paste new report</button>
+  ${body}`;
+}
+function openSchedPaste(){
+  if(needMe()) return;
+  sheet('Paste schedule report', `
+    <p style="color:var(--muted);font-size:13px;margin:2px 2px 10px">Paste the markdown report from the automated Jakarta schedule checker (runs Monday & Thursday). It replaces the previous report for everyone.</p>
+    <textarea class="in" id="schedMd" rows="10" placeholder="# Jadwal Kapal Jakarta — …"></textarea>
+    <button class="btn primary" onclick="saveSchedReport()">Publish report</button>`);
+}
+function saveSchedReport(){
+  const md=$('#schedMd').value.trim();
+  if(!md) return toast('Paste the report first');
+  state.schedreport=state.schedreport||[];
+  let r=state.schedreport.find(x=>x.id==='latest');
+  if(!r){ r={id:'latest'}; state.schedreport.push(r); }
+  r.md=md; r.updatedAt=Date.now(); r.authorId=state.currentUserId;
+  persist(); closeSheet(); route='sched'; render(); toast('Schedule published 🗓️');
 }
 
 /* ---- DASHBOARD ---- */
@@ -2135,6 +2203,7 @@ function saveStory(){
 if(!state.stories) state.stories=[];      // migrate older saved data
 if(!state.standup) state.standup=[];
 if(!state.shipments) state.shipments=[];
+if(!state.schedreport) state.schedreport=[];
 if(!state.lastSeen) state.lastSeen={cerita:0,tasks:0};
 (()=>{ const pinks=['#ec4899','#d946ef','#f43f5e','#db2777','#e11d48']; let changed=false;
   state.members.forEach((m,i)=>{ if(pinks.includes(String(m.color||'').toLowerCase())){ m.color=AVATAR_COLORS[i%AVATAR_COLORS.length]; changed=true; } });
