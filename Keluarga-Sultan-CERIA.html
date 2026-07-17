@@ -1367,7 +1367,7 @@ function viewSchedShip(){
   const r=schedReport();
   const body=r&&r.md
     ? `<div class="card pad" style="margin-bottom:14px">
-        <div style="color:var(--muted);font-size:12px;margin-bottom:10px">Updated ${timeAgo(r.updatedAt)} by ${esc(member(r.authorId)?.name.split(' ')[0]||'—')}</div>
+        <div style="color:var(--muted);font-size:12px;margin-bottom:10px">Updated ${timeAgo(r.updatedAt)} by ${member(r.authorId)?esc(member(r.authorId).name.split(' ')[0]):'🤖 Auto-checker'}</div>
         ${renderScheduleMd(r.md)}
       </div>`
     : `<div class="card pad" style="color:var(--muted);font-size:13.5px">No schedule report yet. Paste the Monday/Thursday Jakarta schedule report here 👇</div>`;
