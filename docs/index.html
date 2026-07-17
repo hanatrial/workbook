@@ -898,12 +898,10 @@ function go(r){ route=r; closeNotifPanel(); render(); window.scrollTo(0,0); }
 
 const NAV = [
   {id:'cerita', label:'Cerita', svg:'story'},
-  {id:'feed',   label:'Photos', svg:'photo'},
   {id:'tasks',  label:'Tasks',  svg:'check'},
   {id:'board',  label:'Board',  svg:'board'},
   {id:'update', label:'Update', svg:'note'},
   {id:'ship',   label:'Ship',   svg:'ship'},
-  {id:'sched',  label:'Sched',  svg:'cal'},
   {id:'dash',   label:'Report', svg:'chart'},
   {id:'team',   label:'Team',   svg:'people'},
 ];
@@ -1008,12 +1006,10 @@ function render(){
   renderNav(); renderMe(); renderNotifBadge();
   const app=$('#app');
   if(route==='cerita') app.innerHTML=viewStories();
-  else if(route==='feed') app.innerHTML=viewFeed();
   else if(route==='tasks') app.innerHTML=viewTasks();
   else if(route==='board') app.innerHTML=viewBoard();
   else if(route==='update') app.innerHTML=viewUpdate();
-  else if(route==='ship') app.innerHTML=viewShipments();
-  else if(route==='sched') app.innerHTML=viewSchedShip();
+  else if(route==='ship'||route==='sched') app.innerHTML=viewShipCombined();
   else if(route==='dash') app.innerHTML=viewDash();
   else if(route==='team') app.innerHTML=viewTeam();
   revealCards(_lastRoute!==route); _lastRoute=route;
@@ -1276,9 +1272,19 @@ function viewShipments(){
       <div style="color:var(--muted);font-size:11px;margin-top:8px">Added by ${esc(member(s.creatorId)?.name.split(' ')[0]||'—')} · ${timeAgo(s.createdAt)}</div>
     </div>`;
   }).join(''):`<div class="card pad" style="color:var(--muted);font-size:13.5px">No shipments yet. Add the first vessel recap 🚢</div>`;
-  return `<div class="view-title"><div><h2>Shipment</h2><div class="sub">Vessel recap — closing, ETD & ETA per destination</div></div></div>
-  <button class="btn ghost" onclick="openShipmentForm()" style="margin-bottom:14px">➕ Add shipment</button>
+  return `<button class="btn ghost" onclick="openShipmentForm()" style="margin-bottom:14px">➕ Add shipment</button>
   ${cards}`;
+}
+let shipSubTab='recap';   // recap | sched
+function viewShipCombined(){
+  const seg=`<div class="seg" style="margin-bottom:14px">
+    <button class="${shipSubTab==='recap'?'on':''}" onclick="shipSubTab='recap';render()">🚢 Shipments</button>
+    <button class="${shipSubTab==='sched'?'on':''}" onclick="shipSubTab='sched';render()">🗓️ Jakarta Schedule</button>
+  </div>`;
+  const sub = shipSubTab==='recap'
+    ? {t:'Vessel recap — closing, ETD & ETA per destination', body:viewShipments()}
+    : {t:'Jakarta sailing schedules — Meratus, Tanto & SPIL', body:viewSchedShip()};
+  return `<div class="view-title"><div><h2>Ship</h2><div class="sub">${sub.t}</div></div></div>${seg}${sub.body}`;
 }
 function parseShipmentPaste(el){
   const text=el.value; if(!text.trim()) return;
@@ -1324,7 +1330,7 @@ function saveShipment(){
   state.shipments.push({ id:uid(), vessel, destinations:$('#shDest').value.trim(),
     closing:$('#shClosing').value||null, etd:$('#shEtd').value||null, eta:$('#shEta').value||null,
     creatorId:state.currentUserId, createdAt:Date.now() });
-  persist(); closeSheet(); route='ship'; render(); toast('Shipment added 🚢');
+  persist(); closeSheet(); route='ship'; shipSubTab='recap'; render(); toast('Shipment added 🚢');
 }
 function deleteShipment(id){
   confirmSheet('Delete this shipment recap? This can\'t be undone.', ()=>{
@@ -1371,8 +1377,7 @@ function viewSchedShip(){
         ${renderScheduleMd(r.md)}
       </div>`
     : `<div class="card pad" style="color:var(--muted);font-size:13.5px">No schedule report yet. Paste the Monday/Thursday Jakarta schedule report here 👇</div>`;
-  return `<div class="view-title"><div><h2>Schedule Ship</h2><div class="sub">Jakarta sailing schedules — Meratus, Tanto & SPIL</div></div></div>
-  <button class="btn ghost" onclick="openSchedPaste()" style="margin-bottom:14px">📋 Paste new report</button>
+  return `<button class="btn ghost" onclick="openSchedPaste()" style="margin-bottom:14px">📋 Paste new report</button>
   ${body}`;
 }
 function openSchedPaste(){
@@ -1389,7 +1394,7 @@ function saveSchedReport(){
   let r=state.schedreport.find(x=>x.id==='latest');
   if(!r){ r={id:'latest'}; state.schedreport.push(r); }
   r.md=md; r.updatedAt=Date.now(); r.authorId=state.currentUserId;
-  persist(); closeSheet(); route='sched'; render(); toast('Schedule published 🗓️');
+  persist(); closeSheet(); route='ship'; shipSubTab='sched'; render(); toast('Schedule published 🗓️');
 }
 
 /* ---- DASHBOARD ---- */
@@ -1623,7 +1628,6 @@ function openAdd(){
   if(route==='ship') return openShipmentForm();
   sheet('Tambah', `<div class="add-menu" style="display:flex;flex-direction:column;gap:10px">
     <button class="lead" onclick="openStoryForm()"><span class="am-ic">💬</span><span>Write a family Cerita<small>News, fun moments, anything</small></span></button>
-    <button onclick="openPhotoForm()"><span class="am-ic">📷</span><span>Share a work photo<small>Display, stock, store visit</small></span></button>
     <button onclick="openTaskForm()"><span class="am-ic">✅</span><span>Assign a task<small>Pick PIC, checklist, due date</small></span></button>
   </div>`);
 }
@@ -1659,7 +1663,7 @@ function savePhoto(){
   if(!draftPhoto) return toast('Choose a photo first');
   state.photos.push({ id:uid(), authorId:state.currentUserId, dataUrl:draftPhoto,
     caption:$('#pcap').value.trim(), location:$('#ploc').value.trim(), createdAt:Date.now(), comments:[] });
-  persist(); closeSheet(); route='feed'; render(); toast('Photo shared 🎉');
+  persist(); closeSheet(); route='cerita'; render(); toast('Photo shared 🎉');
 }
 
 /* ---- Task form ---- */
@@ -2015,7 +2019,7 @@ function resetAll(){
     }, {title:'Reset this device only', confirmLabel:'Forget me on this device'});
     return;
   }
-  confirmSheet('Erase ALL photos, tasks and team edits on this device? This can\'t be undone.', ()=>{ state=seed(); persist(); route='feed'; closeSheet(); render(); toast('Reset done'); }, {confirmLabel:'Erase everything'});
+  confirmSheet('Erase ALL photos, tasks and team edits on this device? This can\'t be undone.', ()=>{ state=seed(); persist(); route='cerita'; closeSheet(); render(); toast('Reset done'); }, {confirmLabel:'Erase everything'});
 }
 
 /* ===================================================================== */
