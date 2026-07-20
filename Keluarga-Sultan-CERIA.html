@@ -243,6 +243,9 @@
   .sched-p{font-size:13px;margin:6px 0;color:var(--ink)}
   .sched-table{border-collapse:collapse;font-size:12.5px;min-width:100%}
   .sched-table th,.sched-table td{border:1px solid var(--line);padding:6px 9px;text-align:left;white-space:nowrap}
+  .sched-table tr.sched-row{cursor:pointer}
+  .sched-table tr.sched-row:active{background:var(--sand,rgba(15,118,110,.12))}
+  @media(hover:hover){.sched-table tr.sched-row:hover{background:rgba(15,118,110,.08)}}
   .sched-table th{background:rgba(34,29,24,.05);font-weight:700}
   .ship-card{margin-bottom:14px;border-left:5px solid #f59e0b}
   .ship-card.arrived{border-left-color:var(--ok,#137a5a);background:#f0faf5}
@@ -1341,16 +1344,38 @@ function deleteShipment(id){
 
 /* ---- SCHEDULE SHIP (rendered markdown report from the automated Jakarta schedule checker) ---- */
 function schedReport(){ return (state.schedreport||[]).find(x=>x.id==='latest')||null; }
+const MONTHS3={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+function parseSchedDate(s){
+  const m=String(s||'').match(/(\d{1,2})\s+([A-Za-z]{3})[a-z]*\s+(\d{4})/);
+  if(!m) return null;
+  const mo=MONTHS3[m[2].toLowerCase().slice(0,3)]; if(!mo) return null;
+  return `${m[3]}-${String(mo).padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+}
+let _schedRows=[];
 function renderScheduleMd(md){
+  _schedRows=[];
   const lines=String(md).split('\n');
-  let html='', tableRows=[], inTable=false;
+  let html='', tableRows=[], inTable=false, currentDest='';
   const inline=s=>esc(s)
     .replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>')
     .replace(/_([^_]+)_/g,'<em>$1</em>');
   const flushTable=()=>{
     if(!tableRows.length){ inTable=false; return; }
     const head=tableRows[0], body=tableRows.slice(1);
-    html+=`<div style="overflow-x:auto;margin:8px 0 14px"><table class="sched-table"><thead><tr>${head.map(c=>`<th>${inline(c)}</th>`).join('')}</tr></thead><tbody>${body.map(r=>`<tr>${r.map(c=>`<td>${inline(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+    const hLow=head.map(h=>h.toLowerCase());
+    const vesselCol=hLow.findIndex(h=>h.includes('vessel'));
+    const etdCol=hLow.findIndex(h=>h.includes('etd'));
+    const etaCol=hLow.findIndex(h=>h.includes('eta'));
+    const rowsHtml=body.map(r=>{
+      let idxAttr='';
+      if(vesselCol>=0){
+        const idx=_schedRows.length;
+        _schedRows.push({ dest:currentDest, vessel:r[vesselCol]||'', etd:etdCol>=0?r[etdCol]:'', eta:etaCol>=0?r[etaCol]:'' });
+        idxAttr=` class="sched-row" onclick="openShipFromSched(${idx})"`;
+      }
+      return `<tr${idxAttr}>${r.map(c=>`<td>${inline(c)}</td>`).join('')}</tr>`;
+    }).join('');
+    html+=`<div style="overflow-x:auto;margin:8px 0 14px"><table class="sched-table"><thead><tr>${head.map(c=>`<th>${inline(c)}</th>`).join('')}</tr></thead><tbody>${rowsHtml}</tbody></table></div>`;
     tableRows=[]; inTable=false;
   };
   lines.forEach(raw=>{
@@ -1362,12 +1387,24 @@ function renderScheduleMd(md){
     }
     if(inTable) flushTable();
     if(!l) return;
-    if(l.startsWith('## ')) html+=`<h3 class="sched-h3">${inline(l.slice(3))}</h3>`;
+    if(l.startsWith('## ')){ currentDest=l.slice(3).trim(); html+=`<h3 class="sched-h3">${inline(l.slice(3))}</h3>`; }
     else if(l.startsWith('# ')) html+=`<h2 class="sched-h2">${inline(l.slice(2))}</h2>`;
     else html+=`<p class="sched-p">${inline(l)}</p>`;
   });
   if(inTable) flushTable();
   return html;
+}
+function openShipFromSched(idx){
+  if(needMe()) return;
+  const row=_schedRows[idx]; if(!row) return;
+  openShipmentForm();
+  setTimeout(()=>{
+    $('#shVessel').value=row.vessel;
+    $('#shDest').value=row.dest;
+    const etd=parseSchedDate(row.etd); if(etd) $('#shEtd').value=etd;
+    const eta=parseSchedDate(row.eta); if(eta) $('#shEta').value=eta;
+    toast('Filled in from the schedule — edit destination & save');
+  },0);
 }
 function viewSchedShip(){
   const r=schedReport();
