@@ -761,6 +761,14 @@ function isOnline(memberId){ return !!(presence[memberId] && presence[memberId].
 const SYNC_COLLECTIONS = ['stories','tasks','photos','members','standup','shipments','schedreport'];
 let lastSynced = { stories:{}, tasks:{}, photos:{}, members:{} };
 let firebaseSyncPrimed=false;
+/* Deletes (and other edits) made before the initial pull from the shared database finishes get
+   silently discarded when that pull lands and overwrites local state — the item then looks like
+   it "came back" after being deleted. Block the action instead, with a clear reason, so nothing
+   is lost silently. */
+function syncNotReady(){
+  if(fbDb && !firebaseSyncPrimed){ toast('Still loading team data — try again in a second'); return true; }
+  return false;
+}
 function syncToFirebase(){
   if(!fbDb) return;
   if(!firebaseSyncPrimed){
@@ -1336,6 +1344,7 @@ function saveShipment(){
   persist(); closeSheet(); route='ship'; shipSubTab='recap'; render(); toast('Shipment added 🚢');
 }
 function deleteShipment(id){
+  if(syncNotReady()) return;
   confirmSheet('Delete this shipment recap? This can\'t be undone.', ()=>{
     state.shipments=(state.shipments||[]).filter(s=>s.id!==id);
     persist(); closeSheet(); render(); toast('Shipment deleted');
@@ -1934,6 +1943,7 @@ function commentObj(kind,id){
        : state.tasks.find(t=>t.id===id);
 }
 function deleteComment(kind,id,commentId){
+  if(syncNotReady()) return;
   const obj=commentObj(kind,id); if(!obj) return;
   const reopen = kind==='task' ? ()=>openTask(id) : kind==='photo' ? ()=>openPhoto(id) : ()=>openStory(id);
   confirmSheet('Delete this comment? This can\'t be undone.', ()=>{
@@ -1999,13 +2009,14 @@ function reassign(id){
   sheet('Reassign PIC',`<p style="color:var(--muted);font-size:13px;margin:2px 2px 14px">Choose the new person in charge.</p><div class="who-grid">${who}</div>`);
 }
 function doReassign(id,pic){ const t=state.tasks.find(x=>x.id===id); t.picId=pic; persist(); openTask(id); render(); toast('Reassigned to '+member(pic).name.split(' ')[0]); }
-function deleteTask(id){ confirmSheet('Delete this task? This can\'t be undone.', ()=>{ state.tasks=state.tasks.filter(t=>t.id!==id); persist(); closeSheet(); render(); toast('Task deleted'); }, {onCancel:()=>openTask(id)}); }
+function deleteTask(id){ if(syncNotReady()) return; confirmSheet('Delete this task? This can\'t be undone.', ()=>{ state.tasks=state.tasks.filter(t=>t.id!==id); persist(); closeSheet(); render(); toast('Task deleted'); }, {onCancel:()=>openTask(id)}); }
 function taskGroupSiblings(t){
   if(t.groupId) return state.tasks.filter(x=>x.groupId===t.groupId);
   // Legacy fallback for tasks assigned before groupId existed: same title/creator/moment = same assignment batch.
   return state.tasks.filter(x=>x.title===t.title && x.creatorId===t.creatorId && x.createdAt===t.createdAt);
 }
 function deleteTaskGroup(id){
+  if(syncNotReady()) return;
   const t=state.tasks.find(x=>x.id===id); if(!t) return;
   const siblings=taskGroupSiblings(t);
   if(siblings.length<2) return deleteTask(id);
@@ -2016,7 +2027,7 @@ function deleteTaskGroup(id){
     closeSheet(); route='tasks'; render(); toast(`Deleted for all ${siblings.length} people`);
   }, {title:'Delete for everyone', confirmLabel:'Delete for all', onCancel:()=>openTask(id)});
 }
-function deletePhoto(id){ confirmSheet('Delete this photo? This can\'t be undone.', ()=>{ state.photos=state.photos.filter(p=>p.id!==id); persist(); closeSheet(); render(); toast('Photo deleted'); }, {onCancel:()=>openPhoto(id)}); }
+function deletePhoto(id){ if(syncNotReady()) return; confirmSheet('Delete this photo? This can\'t be undone.', ()=>{ state.photos=state.photos.filter(p=>p.id!==id); persist(); closeSheet(); render(); toast('Photo deleted'); }, {onCancel:()=>openPhoto(id)}); }
 
 /* ---- Team edit ---- */
 function editMember(id){
@@ -2187,7 +2198,7 @@ function togglePinStory(id){
   const s=state.stories.find(x=>x.id===id); if(!s) return;
   s.pinned=!s.pinned; persist(); openStory(id); render(); toast(s.pinned?'Cerita pinned 📌':'Unpinned');
 }
-function deleteStory(id){ confirmSheet('Delete this Cerita? This can\'t be undone.', ()=>{ state.stories=state.stories.filter(s=>s.id!==id); persist(); closeSheet(); render(); toast('Cerita deleted'); }, {title:'Are you sure?', confirmLabel:'Delete', cancelLabel:'Cancel', onCancel:()=>openStory(id)}); }
+function deleteStory(id){ if(syncNotReady()) return; confirmSheet('Delete this Cerita? This can\'t be undone.', ()=>{ state.stories=state.stories.filter(s=>s.id!==id); persist(); closeSheet(); render(); toast('Cerita deleted'); }, {title:'Are you sure?', confirmLabel:'Delete', cancelLabel:'Cancel', onCancel:()=>openStory(id)}); }
 let draftStoryPhotos=[], pendingCompress=0;
 function openStoryForm(){
   if(needMe()) return; draftStoryPhotos=[]; pendingCompress=0;
