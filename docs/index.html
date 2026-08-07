@@ -1283,8 +1283,38 @@ function viewShipments(){
       <div style="color:var(--muted);font-size:11px;margin-top:8px">Added by ${esc(member(s.creatorId)?.name.split(' ')[0]||'—')} · ${timeAgo(s.createdAt)}</div>
     </div>`;
   }).join(''):`<div class="card pad" style="color:var(--muted);font-size:13.5px">No shipments yet. Add the first vessel recap 🚢</div>`;
-  return `<button class="btn ghost" onclick="openShipmentForm()" style="margin-bottom:14px">➕ Add shipment</button>
+  return `<div style="display:flex;gap:8px;margin-bottom:14px">
+    <button class="btn ghost" style="flex:1" onclick="openShipmentForm()">➕ Add shipment</button>
+    <button class="btn ghost" style="flex:1" onclick="shareShipmentsToWhatsApp()">📤 Share update</button>
+  </div>
   ${cards}`;
+}
+function daysBetween(a,b){ return Math.round((a-b)/86400000); }
+function shareShipmentsToWhatsApp(){
+  const list=state.shipments||[];
+  const today=new Date(); today.setHours(0,0,0,0);
+  const recent=list.filter(s=>{
+    if(!s.eta) return false;
+    const d=daysBetween(today, new Date(s.eta+'T00:00:00'));
+    return d>=0 && d<=7;
+  }).sort((a,b)=> a.eta<b.eta?-1:1);
+  const upcoming=list.filter(s=>{
+    if(!s.eta) return false;
+    const d=daysBetween(new Date(s.eta+'T00:00:00'), today);
+    return d>0 && d<=3;
+  }).sort((a,b)=> a.eta<b.eta?-1:1);
+  const shipLine=s=>`🚢 ${s.vessel}${s.destinations?` — 📍 ${s.destinations}`:''}\n   ETA: ${fmtDate(s.eta)}`;
+  const lines=[`*Vessel Update — ${new Date().toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}*`, ''];
+  lines.push(`✅ *Tiba 7 hari terakhir (cek bongkar)*`);
+  lines.push(...(recent.length?recent.map(shipLine):['- Tidak ada']));
+  lines.push('');
+  lines.push(`⏳ *Akan tiba 3 hari ke depan*`);
+  lines.push(...(upcoming.length?upcoming.map(shipLine):['- Tidak ada']));
+  lines.push('');
+  lines.push(location.origin+location.pathname);
+  const text=lines.join('\n');
+  if(navigator.share){ navigator.share({text}).catch(()=>{}); return; }
+  window.open('https://wa.me/?text='+encodeURIComponent(text), '_blank');
 }
 let shipSubTab='recap';   // recap | sched
 function viewShipCombined(){
