@@ -1303,15 +1303,13 @@ function shareShipmentsToWhatsApp(){
     const d=daysBetween(new Date(s.eta+'T00:00:00'), today);
     return d>0 && d<=3;
   }).sort((a,b)=> a.eta<b.eta?-1:1);
-  const shipLine=s=>`🚢 ${s.vessel}${s.destinations?` — 📍 ${s.destinations}`:''}\n   ETA: ${fmtDate(s.eta)}`;
+  const shipLine=s=>`${s.destinations||'—'}\n${s.vessel}, ETA: ${fmtDate(s.eta)}`;
   const lines=[`*Vessel Update — ${new Date().toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}*`, ''];
   lines.push(`✅ *Tiba 7 hari terakhir (cek bongkar)*`);
   lines.push(...(recent.length?recent.map(shipLine):['- Tidak ada']));
   lines.push('');
   lines.push(`⏳ *Akan tiba 3 hari ke depan*`);
   lines.push(...(upcoming.length?upcoming.map(shipLine):['- Tidak ada']));
-  lines.push('');
-  lines.push(location.origin+location.pathname);
   const text=lines.join('\n');
   if(navigator.share){ navigator.share({text}).catch(()=>{}); return; }
   window.open('https://wa.me/?text='+encodeURIComponent(text), '_blank');
