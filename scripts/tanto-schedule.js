@@ -6,10 +6,15 @@
  * (Ship → Jakarta Schedule) expects: `## Destination` heading + a
  * `| Vessel | ... | ETD | ETA |` table per destination.
  *
- * Usage:  node scripts/tanto-schedule.js > report.md
+ * Usage:  node scripts/tanto-schedule.js
+ * Writes report.md next to this script (UTF-8) — no shell redirect needed,
+ * which avoids Windows terminals mangling the "—" dash into garbled bytes.
  * Requires Node 18+ (built-in fetch). No API key — this is the same endpoint
  * the public schedule.php page calls from the browser.
  */
+
+const fs = require('fs');
+const path = require('path');
 
 const API = 'https://sync.tantooffice.com/api/tcm/';
 
@@ -81,7 +86,7 @@ async function main() {
     return c;
   });
 
-  const out = [`# Jadwal Kapal Tanto — ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`, ''];
+  const out = [`# Jadwal Kapal Tanto - ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`, ''];
 
   for (const originName of ORIGINS) {
     const pol = cities[originName];
@@ -95,7 +100,11 @@ async function main() {
     }
   }
 
-  console.log(out.join('\n'));
+  const md = out.join('\n');
+  const outPath = path.join(__dirname, 'report.md');
+  fs.writeFileSync(outPath, md, 'utf8');
+  console.log(`Saved ${outPath}\n`);
+  console.log(md);
 }
 
 main().catch(err => { console.error(err); process.exit(1); });
