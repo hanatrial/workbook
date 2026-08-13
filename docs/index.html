@@ -1407,15 +1407,26 @@ function meetingRows(){
   return rows.sort((a,b)=> (b.date||'').localeCompare(a.date||'') || (a.area||'').localeCompare(b.area||''));
 }
 let meetingAreaFilter='all';
+let meetingDoneFilter='all';   // all | done | open
 function viewMeetings(){
   const allRows=meetingRows();
   const areas=[...new Set(allRows.map(r=>r.area))].sort((a,b)=>a.localeCompare(b));
   if(meetingAreaFilter!=='all' && !areas.includes(meetingAreaFilter)) meetingAreaFilter='all';
-  const rows = meetingAreaFilter==='all' ? allRows : allRows.filter(r=>r.area===meetingAreaFilter);
-  const chips = areas.length ? `<select class="in" style="margin-bottom:14px" onchange="meetingAreaFilter=this.value;render()">
+  let rows = meetingAreaFilter==='all' ? allRows : allRows.filter(r=>r.area===meetingAreaFilter);
+  if(meetingDoneFilter==='done') rows=rows.filter(r=>r.done);
+  else if(meetingDoneFilter==='open') rows=rows.filter(r=>!r.done);
+  const doneCount=allRows.filter(r=>r.done).length;
+  const chips = areas.length ? `<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+  <select class="in" style="flex:1;min-width:160px" onchange="meetingAreaFilter=this.value;render()">
     <option value="all" ${meetingAreaFilter==='all'?'selected':''}>Semua area (${allRows.length})</option>
     ${areas.map(a=>`<option value="${esc(a)}" ${meetingAreaFilter===a?'selected':''}>${esc(a)} (${allRows.filter(r=>r.area===a).length})</option>`).join('')}
-  </select>` : '';
+  </select>
+  <select class="in" style="flex:1;min-width:160px" onchange="meetingDoneFilter=this.value;render()">
+    <option value="all" ${meetingDoneFilter==='all'?'selected':''}>Semua status (${allRows.length})</option>
+    <option value="done" ${meetingDoneFilter==='done'?'selected':''}>✅ Sudah dicentang (${doneCount})</option>
+    <option value="open" ${meetingDoneFilter==='open'?'selected':''}>⬜ Belum dicentang (${allRows.length-doneCount})</option>
+  </select>
+  </div>` : '';
   const trs = rows.length ? rows.map(r=>`
     <tr>
       <td style="padding:9px 8px;border-bottom:1px solid var(--line);font-weight:700;white-space:nowrap">${esc(r.area)}</td>
