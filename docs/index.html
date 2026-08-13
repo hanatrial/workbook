@@ -1416,13 +1416,14 @@ function viewMeetings(){
       <td style="padding:9px 8px;border-bottom:1px solid var(--line);color:var(--muted);white-space:nowrap">${r.date?fmtDate(r.date):'—'}</td>
       <td style="padding:9px 8px;border-bottom:1px solid var(--line);text-align:center"><input type="checkbox" ${r.done?'checked':''} onchange="toggleMeetingRow('${r.meetingId}','${r.id}')" style="width:18px;height:18px"/></td>
       <td style="padding:9px 8px;border-bottom:1px solid var(--line)"><input class="in" style="padding:6px 8px;font-size:13px;min-width:140px" value="${esc(r.notes||'')}" placeholder="—" onchange="updateMeetingRowNotes('${r.meetingId}','${r.id}',this.value)"/></td>
-    </tr>`).join('') : `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px 10px">Belum ada notulensi. Tambahkan yang pertama 📝</td></tr>`;
+      <td style="padding:9px 8px;border-bottom:1px solid var(--line);text-align:center"><button class="link-btn" style="color:var(--danger)" onclick="deleteMeetingRow('${r.meetingId}','${r.id}')">Hapus</button></td>
+    </tr>`).join('') : `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px 10px">Belum ada notulensi. Tambahkan yang pertama 📝</td></tr>`;
   return `<div class="view-title"><div><h2>Notulensi</h2><div class="sub">PR per bahasan — khusus Lisa, Imad &amp; Jose</div></div></div>
   <button class="btn ghost" style="margin-bottom:14px" onclick="openMeetingForm()">➕ Tambah notulensi</button>
   <div class="card pad" style="overflow-x:auto">
-  <table style="width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px">
+  <table style="width:100%;border-collapse:collapse;font-size:13.5px;min-width:820px">
     <thead><tr style="text-align:left;color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">
-      <th style="padding:6px 8px">Area</th><th style="padding:6px 8px">Action</th><th style="padding:6px 8px">Sumber Notulensi</th><th style="padding:6px 8px">Tanggal Catatan</th><th style="padding:6px 8px;text-align:center">Centang</th><th style="padding:6px 8px">Notes</th>
+      <th style="padding:6px 8px">Area</th><th style="padding:6px 8px">Action</th><th style="padding:6px 8px">Sumber Notulensi</th><th style="padding:6px 8px">Tanggal Catatan</th><th style="padding:6px 8px;text-align:center">Centang</th><th style="padding:6px 8px">Notes</th><th style="padding:6px 8px"></th>
     </tr></thead>
     <tbody>${trs}</tbody>
   </table>
@@ -1476,6 +1477,14 @@ function updateMeetingRowNotes(meetingId,rowId,val){
   const m=(state.meetings||[]).find(x=>x.id===meetingId); if(!m) return;
   const r=(m.rows||[]).find(x=>x.id===rowId); if(!r) return;
   r.notes=val; persist();
+}
+function deleteMeetingRow(meetingId,rowId){
+  confirmSheet('Hapus action item ini? Gak bisa dibalikin.', ()=>{
+    const m=(state.meetings||[]).find(x=>x.id===meetingId); if(!m) return closeSheet();
+    m.rows=(m.rows||[]).filter(x=>x.id!==rowId);
+    if(!m.rows.length) state.meetings=(state.meetings||[]).filter(x=>x.id!==meetingId);
+    persist(); closeSheet(); render(); toast('Action item dihapus');
+  });
 }
 
 /* ---- SCHEDULE SHIP (rendered markdown report from the automated Jakarta schedule checker) ---- */
