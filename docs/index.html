@@ -1406,8 +1406,16 @@ function meetingRows(){
   });
   return rows.sort((a,b)=> (b.date||'').localeCompare(a.date||'') || (a.area||'').localeCompare(b.area||''));
 }
+let meetingAreaFilter='all';
 function viewMeetings(){
-  const rows=meetingRows();
+  const allRows=meetingRows();
+  const areas=[...new Set(allRows.map(r=>r.area))].sort((a,b)=>a.localeCompare(b));
+  if(meetingAreaFilter!=='all' && !areas.includes(meetingAreaFilter)) meetingAreaFilter='all';
+  const rows = meetingAreaFilter==='all' ? allRows : allRows.filter(r=>r.area===meetingAreaFilter);
+  const chips = areas.length ? `<select class="in" style="margin-bottom:14px" onchange="meetingAreaFilter=this.value;render()">
+    <option value="all" ${meetingAreaFilter==='all'?'selected':''}>Semua area (${allRows.length})</option>
+    ${areas.map(a=>`<option value="${esc(a)}" ${meetingAreaFilter===a?'selected':''}>${esc(a)} (${allRows.filter(r=>r.area===a).length})</option>`).join('')}
+  </select>` : '';
   const trs = rows.length ? rows.map(r=>`
     <tr>
       <td style="padding:9px 8px;border-bottom:1px solid var(--line);font-weight:700;white-space:nowrap">${esc(r.area)}</td>
@@ -1417,9 +1425,10 @@ function viewMeetings(){
       <td style="padding:9px 8px;border-bottom:1px solid var(--line);text-align:center"><input type="checkbox" ${r.done?'checked':''} onchange="toggleMeetingRow('${r.meetingId}','${r.id}')" style="width:18px;height:18px"/></td>
       <td style="padding:9px 8px;border-bottom:1px solid var(--line)"><input class="in" style="padding:6px 8px;font-size:13px;min-width:140px" value="${esc(r.notes||'')}" placeholder="—" onchange="updateMeetingRowNotes('${r.meetingId}','${r.id}',this.value)"/></td>
       <td style="padding:9px 8px;border-bottom:1px solid var(--line);text-align:center"><button class="link-btn" style="color:var(--danger)" onclick="deleteMeetingRow('${r.meetingId}','${r.id}')">Hapus</button></td>
-    </tr>`).join('') : `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px 10px">Belum ada notulensi. Tambahkan yang pertama 📝</td></tr>`;
+    </tr>`).join('') : `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px 10px">${allRows.length?'Gak ada action item untuk area ini.':'Belum ada notulensi. Tambahkan yang pertama 📝'}</td></tr>`;
   return `<div class="view-title"><div><h2>Notulensi</h2><div class="sub">PR per bahasan — khusus Lisa, Imad &amp; Jose</div></div></div>
   <button class="btn ghost" style="margin-bottom:14px" onclick="openMeetingForm()">➕ Tambah notulensi</button>
+  ${chips}
   <div class="card pad" style="overflow-x:auto">
   <table style="width:100%;border-collapse:collapse;font-size:13.5px;min-width:820px">
     <thead><tr style="text-align:left;color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">
