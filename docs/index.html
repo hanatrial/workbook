@@ -1274,6 +1274,20 @@ function shipmentEtdPassedNotArrived(s){
   const today=new Date(); today.setHours(0,0,0,0);
   return new Date(s.eta+'T00:00:00') < today;
 }
+function toggleShipmentArrived(id){
+  if(syncNotReady()) return;
+  const s=(state.shipments||[]).find(x=>x.id===id); if(!s) return;
+  s.status = shipmentArrived(s) ? 'Belum Sampai' : 'Sudah Sampai';
+  persist(); render();
+  toast(s.status==='Sudah Sampai' ? 'Marked arrived ✓' : 'Marked as still sailing');
+}
+function toggleLineArrived(id,soNo){
+  if(syncNotReady()) return;
+  const s=(state.shipments||[]).find(x=>x.id===id); if(!s) return;
+  const l=(s.lines||[]).find(x=>String(x.soNo||'')===soNo); if(!l) return;
+  l.arrived=!l.arrived;
+  persist(); render();
+}
 let shipSiteFilter='';
 function setShipFilter(v){ shipSiteFilter=v; render(); }
 function allShipmentSites(){
@@ -1310,14 +1324,14 @@ function viewShipments(){
     const arrived=shipmentArrived(s);
     if(!arrived) notArrived++;
     const etdWarn=shipmentEtdPassedNotArrived(s);
-    const linesTable = visibleLines&&visibleLines.length ? `<div style="overflow-x:auto;margin-top:10px"><table class="sched-table"><thead><tr><th>Customer Site</th><th>No SO</th><th>Container</th></tr></thead><tbody>${visibleLines.map(l=>`<tr><td>${esc(l.site||'')}</td><td>${esc(l.soNo||'')}</td><td>${esc(l.containerSize||'')}</td></tr>`).join('')}</tbody></table>${q&&visibleLines.length<lines.length?`<div style="font-size:11px;color:var(--muted);margin-top:4px">Showing ${visibleLines.length} of ${lines.length} customer sites matching "${esc(shipSiteFilter)}"</div>`:''}</div>` : '';
+    const linesTable = visibleLines&&visibleLines.length ? `<div style="overflow-x:auto;margin-top:10px"><table class="sched-table"><thead><tr><th></th><th>Customer Site</th><th>No SO</th><th>Container</th></tr></thead><tbody>${visibleLines.map(l=>`<tr style="${l.arrived?'opacity:.55':''}"><td><input type="checkbox" class="ds-check" ${l.arrived?'checked':''} onchange="toggleLineArrived('${s.id}','${esc(String(l.soNo||'')).replace(/'/g,"\\'")}')"/></td><td style="${l.arrived?'text-decoration:line-through':''}">${esc(l.site||'')}</td><td>${esc(l.soNo||'')}</td><td>${esc(l.containerSize||'')}</td></tr>`).join('')}</tbody></table>${q&&visibleLines.length<lines.length?`<div style="font-size:11px;color:var(--muted);margin-top:4px">Showing ${visibleLines.length} of ${lines.length} customer sites matching "${esc(shipSiteFilter)}"</div>`:''}</div>` : '';
     const expLine = lines[0]||{};
     return `<div class="card pad ship-card ${arrived?'arrived':''}">
       ${etdWarn?`<div class="ship-warn-banner">⚠️ ETA passed, not yet arrived</div>`:''}
       <div style="display:flex;align-items:flex-start;gap:8px">
         <div style="flex:1">
           <b style="font-size:15px">🚢 ${esc(s.vessel)}</b>
-          ${arrived?`<span class="pill done" style="margin-left:8px">Arrived ✓</span>`:`<span class="pill doing" style="margin-left:8px">Sailing</span>`}
+          <button class="pill ${arrived?'done':'doing'}" style="margin-left:8px" onclick="toggleShipmentArrived('${s.id}')">${arrived?'Arrived ✓':'Sailing — tap to mark arrived'}</button>
           ${s.destinations?`<div style="font-size:12.5px;color:var(--muted);margin-top:4px">📍 ${esc(s.destinations)}</div>`:''}
           ${expLine.expedition||expLine.shippingLine?`<div style="font-size:12.5px;color:var(--muted);margin-top:2px">${expLine.shippingLine?'🚚 '+esc(expLine.shippingLine)+' · ':''}${expLine.expedition?esc(expLine.expedition):''}</div>`:''}
         </div>
