@@ -758,7 +758,7 @@ function isOnline(memberId){ return !!(presence[memberId] && presence[memberId].
    else in `state` that's shared (stories, tasks, photos, members) mirrors
    to Firebase automatically through persist(). Works fully offline when
    FIREBASE_CONFIG is null; nothing below ever runs in that case. */
-const SYNC_COLLECTIONS = ['stories','tasks','photos','members','standup','shipments','schedreport'];
+const SYNC_COLLECTIONS = ['stories','tasks','photos','members','standup','shipments','schedreport','meetings'];
 let lastSynced = { stories:{}, tasks:{}, photos:{}, members:{} };
 let firebaseSyncPrimed=false;
 /* Deletes (and other edits) made before the initial pull from the shared database finishes get
@@ -832,7 +832,7 @@ function seed(){
   const members = TEAM_NAMES.map((name,i)=>(
     { id:'m'+(i+1), name, role:'Sulawesi Terdepan', color:AVATAR_COLORS[i%AVATAR_COLORS.length] }
   ));
-  return { version:1, members, currentUserId:null, photos:[], tasks:[], stories:[], standup:[], shipments:[], schedreport:[], lastSeen:{cerita:0,tasks:0} };
+  return { version:1, members, currentUserId:null, photos:[], tasks:[], stories:[], standup:[], shipments:[], schedreport:[], meetings:[], lastSeen:{cerita:0,tasks:0} };
 }
 let state = DB.load() || seed();      // init AFTER seed()/TEAM_NAMES are defined (avoids TDZ on fresh load)
 function persist(){ DB.save(state); syncToFirebase(); }
@@ -916,6 +916,9 @@ const NAV = [
   {id:'dash',   label:'Report', svg:'chart'},
   {id:'team',   label:'Team',   svg:'people'},
 ];
+/* Notulensi meeting — only visible to these three; everyone else never sees the tab or its data prompt. */
+const MEETING_ACCESS = new Set(['Lisa','Imad','Jose']);
+function hasMeetingAccess(){ const m=me(); return !!m && MEETING_ACCESS.has(m.name); }
 function navIcon(k){
   const I={
     story:'<path d="M21 11.5a8.4 8.4 0 0 1-11.9 7.6L3 21l1.9-6.1A8.4 8.4 0 1 1 21 11.5z"/><path d="M12 9.6c-.9-1.5-3.1-.9-3.1.9 0 1.4 2 2.7 3.1 3.3 1.1-.6 3.1-1.9 3.1-3.3 0-1.8-2.2-2.4-3.1-.9z"/>',
@@ -927,6 +930,7 @@ function navIcon(k){
     note:'<path d="M5 4h14v13l-4 4H5z"/><path d="M15 21v-4h4"/><path d="M8.5 9h7M8.5 13h4"/>',
     ship:'<path d="M4 15l8-3 8 3-2 5H6z"/><path d="M12 12V5M8 8l4-3 4 3"/><path d="M2 20c1.5 1 3 1 4.5 0s3-1 4.5 0 3 1 4.5 0 3-1 4.5 0"/>',
     cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/><path d="M8 14h3M8 17h5"/>',
+    meeting:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v2h6V3M8 9h8M8 13h8M8 17h5"/>',
   };
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${I[k]}</svg>`;
 }
@@ -941,7 +945,9 @@ function markSeen(r){
   state.lastSeen=state.lastSeen||{cerita:0,tasks:0}; state.lastSeen[r]=Date.now(); persist();
 }
 function renderNav(){
-  $('#nav').innerHTML = NAV.map(n=>`<button class="${route===n.id?'active':''}" onclick="go('${n.id}')">${navIcon(n.svg)}${hasUnread(n.id)?'<span class="navdot" aria-hidden="true"></span>':''}<span>${n.label}</span></button>`).join('');
+  const items = NAV.slice();
+  if(hasMeetingAccess()) items.splice(4,0,{id:'meeting', label:'Notulensi', svg:'meeting'});
+  $('#nav').innerHTML = items.map(n=>`<button class="${route===n.id?'active':''}" onclick="go('${n.id}')">${navIcon(n.svg)}${hasUnread(n.id)?'<span class="navdot" aria-hidden="true"></span>':''}<span>${n.label}</span></button>`).join('');
   $('#fab').classList.toggle('hidden', route==='dash'||route==='team');
 }
 
@@ -1014,6 +1020,7 @@ function _notifOutsideClick(e){
 /*                              VIEWS                                     */
 /* ===================================================================== */
 function render(){
+  if(route==='meeting' && !hasMeetingAccess()) route='cerita';
   renderNav(); renderMe(); renderNotifBadge();
   const app=$('#app');
   if(route==='cerita') app.innerHTML=viewStories();
@@ -1021,6 +1028,7 @@ function render(){
   else if(route==='board') app.innerHTML=viewBoard();
   else if(route==='update') app.innerHTML=viewUpdate();
   else if(route==='ship'||route==='sched') app.innerHTML=viewShipCombined();
+  else if(route==='meeting') app.innerHTML=viewMeetings();
   else if(route==='dash') app.innerHTML=viewDash();
   else if(route==='team') app.innerHTML=viewTeam();
   revealCards(_lastRoute!==route); _lastRoute=route;
@@ -1297,8 +1305,44 @@ function viewShipments(){
       <div style="color:var(--muted);font-size:11px;margin-top:8px">Added by ${esc(member(s.creatorId)?.name.split(' ')[0]||'—')} · ${timeAgo(s.createdAt)}</div>
     </div>`;
   }).join(''):`<div class="card pad" style="color:var(--muted);font-size:13.5px">No shipments yet. Add the first vessel recap 🚢</div>`;
-  return `<button class="btn ghost" onclick="openShipmentForm()" style="margin-bottom:14px">➕ Add shipment</button>
+  return `<div style="display:flex;gap:8px;margin-bottom:14px">
+    <button class="btn ghost" style="flex:1" onclick="openShipmentForm()">➕ Add shipment</button>
+    <button class="btn ghost" style="flex:1" onclick="shareShipmentsToWhatsApp()">📤 Share update</button>
+  </div>
   ${cards}`;
+}
+function daysBetween(a,b){ return Math.round((a-b)/86400000); }
+function startOfWeek(d){
+  const dt=new Date(d); dt.setHours(0,0,0,0);
+  const day=dt.getDay(); // 0=Sun..6=Sat
+  const diff=(day===0?-6:1)-day; // shift back to Monday
+  dt.setDate(dt.getDate()+diff);
+  return dt;
+}
+function shareShipmentsToWhatsApp(){
+  const list=state.shipments||[];
+  const today=new Date(); today.setHours(0,0,0,0);
+  const thisWeekStart=startOfWeek(today);
+  const thisWeekEnd=new Date(thisWeekStart); thisWeekEnd.setDate(thisWeekEnd.getDate()+6);
+  const lastWeekStart=new Date(thisWeekStart); lastWeekStart.setDate(lastWeekStart.getDate()-7);
+  const lastWeekEnd=new Date(thisWeekStart); lastWeekEnd.setDate(lastWeekEnd.getDate()-1);
+  const inRange=(s,start,end)=>{
+    if(!s.eta) return false;
+    const eta=new Date(s.eta+'T00:00:00');
+    return eta>=start && eta<=end;
+  };
+  const recent=list.filter(s=>inRange(s,lastWeekStart,lastWeekEnd)).sort((a,b)=> a.eta<b.eta?-1:1);
+  const upcoming=list.filter(s=>inRange(s,thisWeekStart,thisWeekEnd)).sort((a,b)=> a.eta<b.eta?-1:1);
+  const shipLine=s=>`${s.destinations||'—'}\n${s.vessel}, ETA: ${fmtDate(s.eta)}`;
+  const lines=[`*Vessel Update — ${new Date().toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}*`, ''];
+  lines.push(`✅ *Tiba minggu lalu (cek bongkar)*`);
+  lines.push(recent.length?recent.map(shipLine).join('\n\n'):'- Tidak ada');
+  lines.push('');
+  lines.push(`⏳ *Tiba minggu ini*`);
+  lines.push(upcoming.length?upcoming.map(shipLine).join('\n\n'):'- Tidak ada');
+  const text=lines.join('\n');
+  if(navigator.share){ navigator.share({text}).catch(()=>{}); return; }
+  window.open('https://wa.me/?text='+encodeURIComponent(text), '_blank');
 }
 let shipSubTab='recap';   // recap | sched
 function viewShipCombined(){
@@ -1362,6 +1406,118 @@ function deleteShipment(id){
   confirmSheet('Delete this shipment recap? This can\'t be undone.', ()=>{
     state.shipments=(state.shipments||[]).filter(s=>s.id!==id);
     persist(); closeSheet(); render(); toast('Shipment deleted');
+  });
+}
+
+/* ---- NOTULENSI (meeting minutes → PR-per-bahasan action table; Lisa/Imad/Jose only) ----
+   Each "meeting" doc holds the paste's raw metadata (source, date) plus the parsed action
+   rows (area, action, done, notes). The table view flattens rows across all meetings so the
+   whole team's open items read as one PR list, newest note first. */
+function meetingRows(){
+  const rows=[];
+  (state.meetings||[]).forEach(m=>{
+    (m.rows||[]).forEach(r=>rows.push({...r, meetingId:m.id, source:m.source, date:m.date}));
+  });
+  return rows.sort((a,b)=> (b.date||'').localeCompare(a.date||'') || (a.area||'').localeCompare(b.area||''));
+}
+let meetingAreaFilter='all';
+let meetingDoneFilter='all';   // all | done | open
+function viewMeetings(){
+  const allRows=meetingRows();
+  const areas=[...new Set(allRows.map(r=>r.area))].sort((a,b)=>a.localeCompare(b));
+  if(meetingAreaFilter!=='all' && !areas.includes(meetingAreaFilter)) meetingAreaFilter='all';
+  let rows = meetingAreaFilter==='all' ? allRows : allRows.filter(r=>r.area===meetingAreaFilter);
+  if(meetingDoneFilter==='done') rows=rows.filter(r=>r.done);
+  else if(meetingDoneFilter==='open') rows=rows.filter(r=>!r.done);
+  const doneCount=allRows.filter(r=>r.done).length;
+  const chips = areas.length ? `<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+  <select class="in" style="flex:1;min-width:160px" onchange="meetingAreaFilter=this.value;render()">
+    <option value="all" ${meetingAreaFilter==='all'?'selected':''}>Semua area (${allRows.length})</option>
+    ${areas.map(a=>`<option value="${esc(a)}" ${meetingAreaFilter===a?'selected':''}>${esc(a)} (${allRows.filter(r=>r.area===a).length})</option>`).join('')}
+  </select>
+  <select class="in" style="flex:1;min-width:160px" onchange="meetingDoneFilter=this.value;render()">
+    <option value="all" ${meetingDoneFilter==='all'?'selected':''}>Semua status (${allRows.length})</option>
+    <option value="done" ${meetingDoneFilter==='done'?'selected':''}>✅ Sudah dicentang (${doneCount})</option>
+    <option value="open" ${meetingDoneFilter==='open'?'selected':''}>⬜ Belum dicentang (${allRows.length-doneCount})</option>
+  </select>
+  </div>` : '';
+  const trs = rows.length ? rows.map(r=>`
+    <tr>
+      <td style="padding:9px 8px;border-bottom:1px solid var(--line);font-weight:700;white-space:nowrap">${esc(r.area)}</td>
+      <td style="padding:9px 8px;border-bottom:1px solid var(--line);${r.done?'text-decoration:line-through;opacity:.6':''}">${esc(r.action)}</td>
+      <td style="padding:9px 8px;border-bottom:1px solid var(--line);color:var(--muted);white-space:nowrap">${esc(r.source||'—')}</td>
+      <td style="padding:9px 8px;border-bottom:1px solid var(--line);color:var(--muted);white-space:nowrap">${r.date?fmtDate(r.date):'—'}</td>
+      <td style="padding:9px 8px;border-bottom:1px solid var(--line);text-align:center"><input type="checkbox" ${r.done?'checked':''} onchange="toggleMeetingRow('${r.meetingId}','${r.id}')" style="width:18px;height:18px"/></td>
+      <td style="padding:9px 8px;border-bottom:1px solid var(--line)"><input class="in" style="padding:6px 8px;font-size:13px;min-width:140px" value="${esc(r.notes||'')}" placeholder="—" onchange="updateMeetingRowNotes('${r.meetingId}','${r.id}',this.value)"/></td>
+      <td style="padding:9px 8px;border-bottom:1px solid var(--line);text-align:center"><button class="link-btn" style="color:var(--danger)" onclick="deleteMeetingRow('${r.meetingId}','${r.id}')">Hapus</button></td>
+    </tr>`).join('') : `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px 10px">${allRows.length?'Gak ada action item untuk area ini.':'Belum ada notulensi. Tambahkan yang pertama 📝'}</td></tr>`;
+  return `<div class="view-title"><div><h2>Notulensi</h2><div class="sub">PR per bahasan — khusus Lisa, Imad &amp; Jose</div></div></div>
+  <button class="btn ghost" style="margin-bottom:14px" onclick="openMeetingForm()">➕ Tambah notulensi</button>
+  ${chips}
+  <div class="card pad" style="overflow-x:auto">
+  <table style="width:100%;border-collapse:collapse;font-size:13.5px;min-width:820px">
+    <thead><tr style="text-align:left;color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">
+      <th style="padding:6px 8px">Area</th><th style="padding:6px 8px">Action</th><th style="padding:6px 8px">Sumber Notulensi</th><th style="padding:6px 8px">Tanggal Catatan</th><th style="padding:6px 8px;text-align:center">Centang</th><th style="padding:6px 8px">Notes</th><th style="padding:6px 8px"></th>
+    </tr></thead>
+    <tbody>${trs}</tbody>
+  </table>
+  </div>`;
+}
+function parseMeetingPaste(text){
+  const lines=(text||'').split('\n').map(l=>l.trim()).filter(Boolean);
+  let area=null; const rows=[];
+  lines.forEach(l=>{
+    const m=l.match(/^\d+[.)]\s*(.+)/);
+    if(m){ if(area) rows.push({area, action:m[1].trim()}); }
+    else{ area=l.replace(/[:：]\s*$/,'').trim(); }
+  });
+  return rows;
+}
+function previewMeetingPaste(){
+  const el=$('#mgPreview'); if(!el) return;
+  const rows=parseMeetingPaste($('#mgPaste').value);
+  el.textContent = rows.length ? `${rows.length} action item terdeteksi di ${new Set(rows.map(r=>r.area)).size} area` : 'Belum ada action item terdeteksi — pastikan tiap area diikuti poin bernomor (1. 2. 3. ...)';
+}
+function openMeetingForm(){
+  if(needMe()) return;
+  if(!hasMeetingAccess()) return toast('Notulensi khusus untuk beberapa anggota tim');
+  sheet('Tambah notulensi', `
+    <label class="f">Sumber notulensi</label>
+    <input class="in" id="mgSource" placeholder="e.g. Meeting Regional Sulawesi"/>
+    <label class="f">Tanggal catatan</label>
+    <input class="in" type="date" id="mgDate" value="${new Date().toISOString().slice(0,10)}"/>
+    <label class="f">Paste notulensi (nama area, lalu poin bernomor)</label>
+    <textarea class="in" id="mgPaste" rows="10" placeholder="Makassar&#10;1. Pindahkan toko2 pak irfan mt ke cindy&#10;2. ...&#10;&#10;Kendari&#10;1. ..." oninput="previewMeetingPaste()"></textarea>
+    <div id="mgPreview" style="margin-top:8px;font-size:12.5px;color:var(--muted)">Belum ada action item terdeteksi</div>
+    <button class="btn primary" onclick="saveMeeting()">Simpan notulensi</button>`);
+}
+function saveMeeting(){
+  const rows=parseMeetingPaste($('#mgPaste').value);
+  if(!rows.length) return toast('Gak ada action item yang kedetek — cek formatnya');
+  const source=$('#mgSource').value.trim(), date=$('#mgDate').value||null;
+  state.meetings=state.meetings||[];
+  state.meetings.push({
+    id:uid(), source, date, creatorId:state.currentUserId, createdAt:Date.now(),
+    rows: rows.map(r=>({id:uid(), area:r.area, action:r.action, done:false, notes:''}))
+  });
+  persist(); closeSheet(); route='meeting'; render(); toast(`Notulensi tersimpan — ${rows.length} action item 📝`);
+}
+function toggleMeetingRow(meetingId,rowId){
+  const m=(state.meetings||[]).find(x=>x.id===meetingId); if(!m) return;
+  const r=(m.rows||[]).find(x=>x.id===rowId); if(!r) return;
+  r.done=!r.done; persist(); render();
+}
+function updateMeetingRowNotes(meetingId,rowId,val){
+  const m=(state.meetings||[]).find(x=>x.id===meetingId); if(!m) return;
+  const r=(m.rows||[]).find(x=>x.id===rowId); if(!r) return;
+  r.notes=val; persist();
+}
+function deleteMeetingRow(meetingId,rowId){
+  confirmSheet('Hapus action item ini? Gak bisa dibalikin.', ()=>{
+    const m=(state.meetings||[]).find(x=>x.id===meetingId); if(!m) return closeSheet();
+    m.rows=(m.rows||[]).filter(x=>x.id!==rowId);
+    if(!m.rows.length) state.meetings=(state.meetings||[]).filter(x=>x.id!==meetingId);
+    persist(); closeSheet(); render(); toast('Action item dihapus');
   });
 }
 
@@ -1686,6 +1842,7 @@ function openAdd(){
   if(route==='cerita') return openStoryForm();
   if(route==='tasks'||route==='board') return openTaskForm();
   if(route==='ship') return openShipmentForm();
+  if(route==='meeting') return openMeetingForm();
   sheet('Tambah', `<div class="add-menu" style="display:flex;flex-direction:column;gap:10px">
     <button class="lead" onclick="openStoryForm()"><span class="am-ic">💬</span><span>Write a family Cerita<small>News, fun moments, anything</small></span></button>
     <button onclick="openTaskForm()"><span class="am-ic">✅</span><span>Assign a task<small>Pick PIC, checklist, due date</small></span></button>
@@ -2270,6 +2427,7 @@ if(!state.stories) state.stories=[];      // migrate older saved data
 if(!state.standup) state.standup=[];
 if(!state.shipments) state.shipments=[];
 if(!state.schedreport) state.schedreport=[];
+if(!state.meetings) state.meetings=[];
 if(!state.lastSeen) state.lastSeen={cerita:0,tasks:0};
 (()=>{ const pinks=['#ec4899','#d946ef','#f43f5e','#db2777','#e11d48']; let changed=false;
   state.members.forEach((m,i)=>{ if(pinks.includes(String(m.color||'').toLowerCase())){ m.color=AVATAR_COLORS[i%AVATAR_COLORS.length]; changed=true; } });
