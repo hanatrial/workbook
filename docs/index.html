@@ -1254,9 +1254,16 @@ function resetStandup(){
 
 /* ---- SHIPMENTS (vessel recap: ETD / ETA / Closing per destination) ---- */
 function shipmentArrived(s){
+  if(s.status==='Sudah Sampai') return true;
+  if(s.status==='Belum Sampai') return false;
   if(!s.eta) return false;
   const today=new Date(); today.setHours(0,0,0,0);
   return new Date(s.eta+'T00:00:00') <= today;
+}
+function shipmentEtdPassedNotArrived(s){
+  if(shipmentArrived(s) || !s.etd) return false;
+  const today=new Date(); today.setHours(0,0,0,0);
+  return new Date(s.etd+'T00:00:00') < today;
 }
 function viewShipments(){
   const list=(state.shipments||[]).slice().sort((a,b)=>{
@@ -1266,12 +1273,18 @@ function viewShipments(){
   });
   const cards=list.length?list.map(s=>{
     const arrived=shipmentArrived(s);
+    const etdWarn=shipmentEtdPassedNotArrived(s);
+    const lines=s.lines||[];
+    const linesTable = lines.length ? `<div style="overflow-x:auto;margin-top:10px"><table class="sched-table"><thead><tr><th>Customer Site</th><th>No SO</th><th>Container</th></tr></thead><tbody>${lines.map(l=>`<tr><td>${esc(l.site||'')}</td><td>${esc(l.soNo||'')}</td><td>${esc(l.containerSize||'')}</td></tr>`).join('')}</tbody></table></div>` : '';
+    const expLine = lines[0]||{};
     return `<div class="card pad ship-card ${arrived?'arrived':''}">
       <div style="display:flex;align-items:flex-start;gap:8px">
         <div style="flex:1">
           <b style="font-size:15px">🚢 ${esc(s.vessel)}</b>
           ${arrived?`<span class="pill done" style="margin-left:8px">Arrived ✓</span>`:`<span class="pill doing" style="margin-left:8px">Sailing</span>`}
+          ${etdWarn?`<span class="pill overdue" style="margin-left:8px">⚠️ ETD passed, not yet arrived</span>`:''}
           ${s.destinations?`<div style="font-size:12.5px;color:var(--muted);margin-top:4px">📍 ${esc(s.destinations)}</div>`:''}
+          ${expLine.expedition||expLine.shippingLine?`<div style="font-size:12.5px;color:var(--muted);margin-top:2px">${expLine.shippingLine?'🚚 '+esc(expLine.shippingLine)+' · ':''}${expLine.expedition?esc(expLine.expedition):''}</div>`:''}
         </div>
         <button class="link-btn" style="color:var(--danger)" onclick="deleteShipment('${s.id}')">Delete</button>
       </div>
@@ -1280,6 +1293,7 @@ function viewShipments(){
         <div><small>ETD</small><b>${s.etd?fmtDate(s.etd):'—'}</b></div>
         <div><small>ETA</small><b>${s.eta?fmtDate(s.eta):'—'}</b></div>
       </div>
+      ${linesTable}
       <div style="color:var(--muted);font-size:11px;margin-top:8px">Added by ${esc(member(s.creatorId)?.name.split(' ')[0]||'—')} · ${timeAgo(s.createdAt)}</div>
     </div>`;
   }).join(''):`<div class="card pad" style="color:var(--muted);font-size:13.5px">No shipments yet. Add the first vessel recap 🚢</div>`;
