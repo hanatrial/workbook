@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#F3EEE5" />
+<title>Ship — Vessel Recap</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<style>
+  :root{
+    --brand:#0f766e; --brand-2:#14b8a6;
+    --bg:#F3EEE5; --card:#FFFDF9; --ink:#221D18; --muted:#6B6055;
+    --line:#e9e2d6; --danger:#C63A47; --ok:#137A5A;
+    --shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(15,23,42,.06);
+    --radius:16px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--ink); font-size:15px; line-height:1.45;
+    padding-bottom:40px;
+  }
+  header{padding:20px 18px 6px}
+  header h1{margin:0;font-size:22px;font-weight:800}
+  header .sub{color:var(--muted);font-size:12.5px;margin-top:4px}
+  main{padding:14px 18px}
+  .btn{display:block;width:100%;padding:13px;border-radius:14px;font-size:14.5px;font-weight:700;text-align:center;border:none;cursor:pointer;font-family:inherit}
+  .btn.ghost{background:var(--card);border:1px solid var(--line);color:var(--ink)}
+  .btn.primary{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff}
+  .row{display:flex;gap:8px;margin-bottom:14px}
+  .row .btn{flex:1;margin:0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin-bottom:14px}
+  .ship-card{border-left:5px solid #f59e0b}
+  .ship-card.arrived{border-left-color:var(--ok);background:#f0faf5}
+  .pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;display:inline-flex;margin-left:8px}
+  .pill.doing{background:#fef3c7;color:#92400e}
+  .pill.done{background:#dcfce7;color:#166534}
+  .ship-dates{display:flex;gap:10px;margin-top:12px}
+  .ship-dates>div{flex:1;background:rgba(34,29,24,.045);border-radius:12px;padding:8px 10px}
+  .ship-dates small{display:block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .ship-dates b{font-size:13.5px}
+  .link-btn{color:var(--danger);font-size:13px;font-weight:700;background:none;border:none;cursor:pointer}
+  .empty{text-align:center;color:var(--muted);padding:30px 10px;font-size:13.5px}
+  .sheet-overlay{position:fixed;inset:0;background:rgba(15,23,42,.4);display:flex;align-items:flex-end;justify-content:center;z-index:50}
+  .sheet{background:var(--bg);width:100%;max-width:520px;max-height:90vh;overflow-y:auto;border-radius:20px 20px 0 0;padding:16px 18px 24px}
+  .sheet h3{margin:0 0 12px}
+  label.f{display:block;font-size:12.5px;font-weight:700;color:var(--muted);margin:14px 0 6px}
+  .in{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:12px;font-size:14.5px;background:var(--card);color:var(--ink)}
+  textarea.in{resize:vertical}
+  .hidden{display:none !important}
+  #toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:#221D18;color:#fff;padding:10px 18px;border-radius:999px;font-size:13.5px;opacity:0;transition:.25s;pointer-events:none;z-index:100}
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+  @media (prefers-color-scheme: dark){
+    :root{--bg:#181512;--card:#221D18;--ink:#F3EEE5;--muted:#9c9186;--line:#332c25}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>🚢 Ship</h1>
+  <div class="sub">Vessel recap — closing, ETD & ETA per destination</div>
+</header>
+<main>
+  <div class="row">
+    <button class="btn ghost" onclick="openShipmentForm()">➕ Add shipment</button>
+    <button class="btn ghost" onclick="shareUpdate()">📤 Share update</button>
+  </div>
+  <div id="list"><div class="empty">Loading…</div></div>
+</main>
+<div id="toast"></div>
+
+<script>
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBFnPb07fIIY8wIp8sWRY68KgqofJtjPOg",
+  authDomain: "workbook-ks.firebaseapp.com",
+  databaseURL: "https://workbook-ks-default-rtdb.asia-southeast1.firebasedatabase.app/",
+  projectId: "workbook-ks",
+  storageBucket: "workbook-ks.firebasestorage.app",
+  messagingSenderId: "233782877504",
+  appId: "1:233782877504:web:f102f525e3b14c8371aea5",
+};
+firebase.initializeApp(FIREBASE_CONFIG);
+const db = firebase.database();
+let shipments = [];
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=> 's_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1900); }
+function fmtDate(d){ if(!d) return ''; const dt=new Date(d+'T00:00:00'); return dt.toLocaleDateString(undefined,{day:'numeric',month:'short'}); }
+function timeAgo(ts){
+  if(!ts) return '';
+  const s=Math.floor((Date.now()-ts)/1000);
+  if(s<60) return 'just now';
+  if(s<3600) return Math.floor(s/60)+'m ago';
+  if(s<86400) return Math.floor(s/3600)+'h ago';
+  return Math.floor(s/86400)+'d ago';
+}
+function shipmentArrived(s){
+  if(!s.eta) return false;
+  const today=new Date(); today.setHours(0,0,0,0);
+  return new Date(s.eta+'T00:00:00') <= today;
+}
+
+db.ref('shipments').on('value', snap=>{
+  const val = snap.val() || {};
+  shipments = Object.values(val);
+  render();
+});
+
+function render(){
+  const list = shipments.slice().sort((a,b)=>{
+    const aa=shipmentArrived(a), ba=shipmentArrived(b);
+    if(aa!==ba) return aa?1:-1;
+    return (a.eta||'9999') < (b.eta||'9999') ? -1 : 1;
+  });
+  if(!list.length){ $('#list').innerHTML = `<div class="empty">No shipments yet. Add the first vessel recap 🚢</div>`; return; }
+  $('#list').innerHTML = list.map(s=>{
+    const arrived = shipmentArrived(s);
+    return `<div class="card ship-card ${arrived?'arrived':''}">
+      <div style="display:flex;align-items:flex-start;gap:8px">
+        <div style="flex:1">
+          <b style="font-size:15px">🚢 ${esc(s.vessel)}</b>
+          ${arrived?`<span class="pill done">Arrived ✓</span>`:`<span class="pill doing">Sailing</span>`}
+          ${s.destinations?`<div style="font-size:12.5px;color:var(--muted);margin-top:4px">📍 ${esc(s.destinations)}</div>`:''}
+        </div>
+        <button class="link-btn" onclick="deleteShipment('${s.id}')">Delete</button>
+      </div>
+      <div class="ship-dates">
+        <div><small>Closing</small><b>${s.closing?fmtDate(s.closing):'—'}</b></div>
+        <div><small>ETD</small><b>${s.etd?fmtDate(s.etd):'—'}</b></div>
+        <div><small>ETA</small><b>${s.eta?fmtDate(s.eta):'—'}</b></div>
+      </div>
+      <div style="color:var(--muted);font-size:11px;margin-top:8px">${timeAgo(s.createdAt)}</div>
+    </div>`;
+  }).join('');
+}
+
+function openShipmentForm(){
+  const overlay=document.createElement('div');
+  overlay.className='sheet-overlay';
+  overlay.innerHTML=`<div class="sheet">
+    <h3>Add shipment</h3>
+    <label class="f">Paste recap (optional — auto-fills fields below)</label>
+    <textarea class="in" id="shPaste" rows="4" placeholder="Distributor: BSP Makassar&#10;KM. Tanto Tenang voy 284&#10;Etd 18/07/2026&#10;Eta 22/07/2026&#10;Closing 17/07/2026"></textarea>
+    <label class="f">Vessel / voyage</label>
+    <input class="in" id="shVessel" placeholder="e.g. KM. Tanto Tenang voy 284"/>
+    <label class="f">Destinations (optional)</label>
+    <input class="in" id="shDest" placeholder="e.g. BSP Makassar"/>
+    <label class="f">Closing date</label>
+    <input class="in" type="date" id="shClosing"/>
+    <label class="f">ETD (departure)</label>
+    <input class="in" type="date" id="shEtd"/>
+    <label class="f">ETA (arrival)</label>
+    <input class="in" type="date" id="shEta"/>
+    <button class="btn primary" style="margin-top:16px" onclick="saveShipment()">Save shipment</button>
+    <button class="btn ghost" style="margin-top:10px" onclick="closeSheet()">Cancel</button>
+  </div>`;
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) closeSheet(); });
+  document.body.appendChild(overlay);
+  $('#shPaste').addEventListener('input', e=>parseShipmentPaste(e.target));
+}
+function closeSheet(){ const o=document.querySelector('.sheet-overlay'); if(o) o.remove(); }
+function parseShipmentPaste(el){
+  const text=el.value; if(!text.trim()) return;
+  const toISO=d=>{ const m=d.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/); return m?`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`:null; };
+  const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
+  let vessel='', dest='', etd=null, eta=null, closing=null;
+  lines.forEach(l=>{
+    const low=l.toLowerCase();
+    if(/^(distributor|dist|destination|tujuan)\b/.test(low)) dest=l.replace(/^[^:]*:\s*/,'').trim();
+    else if(/^etd\b/.test(low)) etd=toISO(l);
+    else if(/^eta\b/.test(low)) eta=toISO(l);
+    else if(/^closing\b/.test(low)) closing=toISO(l);
+    else if(!vessel) vessel=l;
+  });
+  if(vessel) $('#shVessel').value=vessel;
+  if(dest) $('#shDest').value=dest;
+  if(etd) $('#shEtd').value=etd;
+  if(eta) $('#shEta').value=eta;
+  if(closing) $('#shClosing').value=closing;
+  if(vessel||dest||etd||eta||closing){ el.value=''; toast('Recap filled in ✓ — check & save'); }
+}
+function saveShipment(){
+  const vessel=$('#shVessel').value.trim();
+  if(!vessel) return toast('Add the vessel name first');
+  const item={ id:uid(), vessel, destinations:$('#shDest').value.trim(),
+    closing:$('#shClosing').value||null, etd:$('#shEtd').value||null, eta:$('#shEta').value||null,
+    creatorId:null, createdAt:Date.now() };
+  db.ref('shipments/'+item.id).set(item);
+  closeSheet(); toast('Shipment added 🚢');
+}
+function deleteShipment(id){
+  if(!confirm('Delete this shipment recap? This can\'t be undone.')) return;
+  db.ref('shipments/'+id).remove();
+  toast('Shipment deleted');
+}
+
+function startOfWeek(d){
+  const dt=new Date(d); dt.setHours(0,0,0,0);
+  const day=dt.getDay();
+  const diff=(day===0?-6:1)-day;
+  dt.setDate(dt.getDate()+diff);
+  return dt;
+}
+function shareUpdate(){
+  const today=new Date(); today.setHours(0,0,0,0);
+  const thisWeekStart=startOfWeek(today);
+  const thisWeekEnd=new Date(thisWeekStart); thisWeekEnd.setDate(thisWeekEnd.getDate()+6);
+  const lastWeekStart=new Date(thisWeekStart); lastWeekStart.setDate(lastWeekStart.getDate()-7);
+  const lastWeekEnd=new Date(thisWeekStart); lastWeekEnd.setDate(lastWeekEnd.getDate()-1);
+  const inRange=(s,start,end)=>{
+    if(!s.eta) return false;
+    const eta=new Date(s.eta+'T00:00:00');
+    return eta>=start && eta<=end;
+  };
+  const recent=shipments.filter(s=>inRange(s,lastWeekStart,lastWeekEnd)).sort((a,b)=> a.eta<b.eta?-1:1);
+  const upcoming=shipments.filter(s=>inRange(s,thisWeekStart,thisWeekEnd)).sort((a,b)=> a.eta<b.eta?-1:1);
+  const shipLine=s=>`${s.destinations||'—'}\n${s.vessel}, ETA: ${fmtDate(s.eta)}`;
+  const lines=[`*Vessel Update — ${new Date().toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}*`, ''];
+  lines.push(`✅ *Tiba minggu lalu (cek bongkar)*`);
+  lines.push(recent.length?recent.map(shipLine).join('\n\n'):'- Tidak ada');
+  lines.push('');
+  lines.push(`⏳ *Tiba minggu ini*`);
+  lines.push(upcoming.length?upcoming.map(shipLine).join('\n\n'):'- Tidak ada');
+  const text=lines.join('\n');
+  if(navigator.share){ navigator.share({text}).catch(()=>{}); return; }
+  window.open('https://wa.me/?text='+encodeURIComponent(text), '_blank');
+}
+</script>
+</body>
+</html>
