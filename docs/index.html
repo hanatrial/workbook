@@ -1275,7 +1275,15 @@ function shipmentEtdPassedNotArrived(s){
   return new Date(s.eta+'T00:00:00') < today;
 }
 let shipSiteFilter='';
-function onShipFilterInput(el){ shipSiteFilter=el.value; render(); setTimeout(()=>{ const f=$('#shipFilterInput'); if(f){ f.focus(); f.setSelectionRange(f.value.length,f.value.length); } },0); }
+function setShipFilter(v){ shipSiteFilter=v; render(); }
+function allShipmentSites(){
+  const set=new Set();
+  (state.shipments||[]).forEach(s=>{
+    (s.lines||[]).forEach(l=>{ if(l.site) set.add(l.site.trim()); });
+    if(!(s.lines||[]).length && s.destinations) s.destinations.split(',').forEach(d=>{ if(d.trim()) set.add(d.trim()); });
+  });
+  return [...set].sort((a,b)=>a.localeCompare(b));
+}
 function viewShipments(){
   const q=shipSiteFilter.trim().toLowerCase();
   const list=(state.shipments||[]).slice().sort((a,b)=>{
@@ -1283,10 +1291,11 @@ function viewShipments(){
     if(aa!==ba) return aa?1:-1;                       // sailing first, arrived at the bottom
     return (a.eta||'9999') < (b.eta||'9999') ? -1 : 1; // soonest ETA first
   });
-  const filterBar=`<div style="position:relative;margin-bottom:14px">
-    <input class="in" id="shipFilterInput" value="${esc(shipSiteFilter)}" oninput="onShipFilterInput(this)" placeholder="🔍 Filter by customer site / distributor…"/>
-    ${shipSiteFilter?`<button class="link-btn" style="position:absolute;right:10px;top:50%;transform:translateY(-50%)" onclick="shipSiteFilter='';render()">✕</button>`:''}
-  </div>`;
+  const siteOptions=allShipmentSites();
+  const filterBar=`<select class="in" id="shipFilterInput" style="margin-bottom:14px" onchange="setShipFilter(this.value)">
+    <option value="">🔍 All customer sites / distributors</option>
+    ${siteOptions.map(s=>`<option value="${esc(s)}" ${shipSiteFilter===s?'selected':''}>${esc(s)}</option>`).join('')}
+  </select>`;
   let shown=0, notArrived=0;
   const cards=list.map(s=>{
     const lines=s.lines||[];
