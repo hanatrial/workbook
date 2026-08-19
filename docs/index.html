@@ -249,6 +249,7 @@
   .sched-table th{background:rgba(34,29,24,.05);font-weight:700}
   .ship-card{margin-bottom:14px;border-left:5px solid #f59e0b}
   .ship-card.arrived{border-left-color:var(--ok,#137a5a);background:#f0faf5}
+  .ship-warn-banner{margin:-16px -16px 12px;padding:9px 16px;background:var(--danger);color:#fff;font-size:12.5px;font-weight:700;letter-spacing:.01em;border-radius:26px 26px 0 0}
   .ship-dates{display:flex;gap:10px;margin-top:12px}
   .ship-dates>div{flex:1;background:rgba(34,29,24,.045);border-radius:12px;padding:8px 10px}
   .ship-dates small{display:block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
@@ -1269,28 +1270,45 @@ function shipmentArrived(s){
   return new Date(s.eta+'T00:00:00') <= today;
 }
 function shipmentEtdPassedNotArrived(s){
-  if(shipmentArrived(s) || !s.etd) return false;
+  if(shipmentArrived(s) || !s.eta) return false;
   const today=new Date(); today.setHours(0,0,0,0);
-  return new Date(s.etd+'T00:00:00') < today;
+  return new Date(s.eta+'T00:00:00') < today;
 }
+let shipSiteFilter='';
+function onShipFilterInput(el){ shipSiteFilter=el.value; render(); setTimeout(()=>{ const f=$('#shipFilterInput'); if(f){ f.focus(); f.setSelectionRange(f.value.length,f.value.length); } },0); }
 function viewShipments(){
+  const q=shipSiteFilter.trim().toLowerCase();
   const list=(state.shipments||[]).slice().sort((a,b)=>{
     const aa=shipmentArrived(a), ba=shipmentArrived(b);
     if(aa!==ba) return aa?1:-1;                       // sailing first, arrived at the bottom
     return (a.eta||'9999') < (b.eta||'9999') ? -1 : 1; // soonest ETA first
   });
-  const cards=list.length?list.map(s=>{
-    const arrived=shipmentArrived(s);
-    const etdWarn=shipmentEtdPassedNotArrived(s);
+  const filterBar=`<div style="position:relative;margin-bottom:14px">
+    <input class="in" id="shipFilterInput" value="${esc(shipSiteFilter)}" oninput="onShipFilterInput(this)" placeholder="🔍 Filter by customer site / distributor…"/>
+    ${shipSiteFilter?`<button class="link-btn" style="position:absolute;right:10px;top:50%;transform:translateY(-50%)" onclick="shipSiteFilter='';render()">✕</button>`:''}
+  </div>`;
+  let shown=0, notArrived=0;
+  const cards=list.map(s=>{
     const lines=s.lines||[];
-    const linesTable = lines.length ? `<div style="overflow-x:auto;margin-top:10px"><table class="sched-table"><thead><tr><th>Customer Site</th><th>No SO</th><th>Container</th></tr></thead><tbody>${lines.map(l=>`<tr><td>${esc(l.site||'')}</td><td>${esc(l.soNo||'')}</td><td>${esc(l.containerSize||'')}</td></tr>`).join('')}</tbody></table></div>` : '';
+    let visibleLines=lines;
+    if(q){
+      if(lines.length) visibleLines=lines.filter(l=>(l.site||'').toLowerCase().includes(q));
+      else if(!(s.destinations||'').toLowerCase().includes(q)) visibleLines=null; // legacy card, no line match either
+      if(lines.length && !visibleLines.length) return '';   // has lines but none match — hide card
+      if(!lines.length && visibleLines===null) return '';   // legacy card that doesn't match — hide card
+    }
+    shown++;
+    const arrived=shipmentArrived(s);
+    if(!arrived) notArrived++;
+    const etdWarn=shipmentEtdPassedNotArrived(s);
+    const linesTable = visibleLines&&visibleLines.length ? `<div style="overflow-x:auto;margin-top:10px"><table class="sched-table"><thead><tr><th>Customer Site</th><th>No SO</th><th>Container</th></tr></thead><tbody>${visibleLines.map(l=>`<tr><td>${esc(l.site||'')}</td><td>${esc(l.soNo||'')}</td><td>${esc(l.containerSize||'')}</td></tr>`).join('')}</tbody></table>${q&&visibleLines.length<lines.length?`<div style="font-size:11px;color:var(--muted);margin-top:4px">Showing ${visibleLines.length} of ${lines.length} customer sites matching "${esc(shipSiteFilter)}"</div>`:''}</div>` : '';
     const expLine = lines[0]||{};
     return `<div class="card pad ship-card ${arrived?'arrived':''}">
+      ${etdWarn?`<div class="ship-warn-banner">⚠️ ETA passed, not yet arrived</div>`:''}
       <div style="display:flex;align-items:flex-start;gap:8px">
         <div style="flex:1">
           <b style="font-size:15px">🚢 ${esc(s.vessel)}</b>
           ${arrived?`<span class="pill done" style="margin-left:8px">Arrived ✓</span>`:`<span class="pill doing" style="margin-left:8px">Sailing</span>`}
-          ${etdWarn?`<span class="pill overdue" style="margin-left:8px">⚠️ ETD passed, not yet arrived</span>`:''}
           ${s.destinations?`<div style="font-size:12.5px;color:var(--muted);margin-top:4px">📍 ${esc(s.destinations)}</div>`:''}
           ${expLine.expedition||expLine.shippingLine?`<div style="font-size:12.5px;color:var(--muted);margin-top:2px">${expLine.shippingLine?'🚚 '+esc(expLine.shippingLine)+' · ':''}${expLine.expedition?esc(expLine.expedition):''}</div>`:''}
         </div>
@@ -1304,12 +1322,14 @@ function viewShipments(){
       ${linesTable}
       <div style="color:var(--muted);font-size:11px;margin-top:8px">Added by ${esc(member(s.creatorId)?.name.split(' ')[0]||'—')} · ${timeAgo(s.createdAt)}</div>
     </div>`;
-  }).join(''):`<div class="card pad" style="color:var(--muted);font-size:13.5px">No shipments yet. Add the first vessel recap 🚢</div>`;
+  }).join('');
+  const summary = q ? `<div style="font-size:12.5px;color:var(--muted);margin-bottom:10px">${shown?`${shown} shipment${shown===1?'':'s'} for "${esc(shipSiteFilter)}" — ${notArrived} not yet arrived`:`No shipments found for "${esc(shipSiteFilter)}"`}</div>` : '';
   return `<div style="display:flex;gap:8px;margin-bottom:14px">
     <button class="btn ghost" style="flex:1" onclick="openShipmentForm()">➕ Add shipment</button>
     <button class="btn ghost" style="flex:1" onclick="shareShipmentsToWhatsApp()">📤 Share update</button>
   </div>
-  ${cards}`;
+  ${filterBar}${summary}
+  ${cards||(list.length?'':`<div class="card pad" style="color:var(--muted);font-size:13.5px">No shipments yet. Add the first vessel recap 🚢</div>`)}`;
 }
 function daysBetween(a,b){ return Math.round((a-b)/86400000); }
 function startOfWeek(d){
