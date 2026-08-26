@@ -1770,18 +1770,9 @@ function viewDash(){
   const overdue=T.filter(t=>t.status!=='done'&&t.due&&dueState(t.due)?.t.startsWith('Overdue')).length;
   const pct=T.length?Math.round(done/T.length*100):0;
   const seg=(n,col)=>T.length?`<span style="width:${n/T.length*100}%;background:${col}"></span>`:'';
-  // load per member (open tasks)
-  const load=state.members.map(m=>({m, open:T.filter(t=>t.picId===m.id&&t.status!=='done').length, tot:T.filter(t=>t.picId===m.id).length}))
-    .sort((a,b)=>b.open-a.open);
-  const maxLoad=Math.max(1,...load.map(l=>l.open));
-  const activity=[
-    ...state.photos.map(p=>({ts:p.createdAt,txt:`${member(p.authorId)?.name.split(' ')[0]||'?'} shared a photo`,ic:'📷'})),
-    ...state.tasks.map(t=>({ts:t.createdAt,txt:`Task “${t.title}” → ${member(t.picId)?.name.split(' ')[0]||'?'}`,ic:'✅'})),
-  ].sort((a,b)=>b.ts-a.ts).slice(0,6);
   const R=34, CIRC=2*Math.PI*R, off=CIRC*(1-pct/100);
   return `<div class="view-title"><div><h2>HPM</h2><div class="sub">Team progress at a glance</div></div></div>
   <button class="btn ghost" onclick="exportReportImage()" style="margin-top:0;margin-bottom:14px">📤 Export as image</button>
-  ${hpmSection()}
   <div class="card pad ring-card">
     <svg class="ring" viewBox="0 0 84 84" role="img" aria-label="Progress ${pct} persen">
       <circle cx="42" cy="42" r="${R}" fill="none" stroke="var(--sand)" stroke-width="9"/>
@@ -1803,22 +1794,7 @@ function viewDash(){
     <div class="bar" style="margin-top:12px">${seg(todo,'#94a3b8')}${seg(doing,'#f59e0b')}${seg(done,'#16a34a')}</div>
     <div class="legend"><span><i style="background:#94a3b8"></i>To Do ${todo}</span><span><i style="background:#f59e0b"></i>Doing ${doing}</span><span><i style="background:#16a34a"></i>Done ${done}</span></div>
   </div>
-  <div class="card pad" style="margin-bottom:14px">
-    <b style="font-size:14px">Workload — open tasks per PIC</b>
-    <div style="margin-top:10px">
-    ${load.filter(l=>l.tot>0).length? load.filter(l=>l.tot>0).map(l=>`<div class="rank">${avatar(l.m.id)}
-        <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(l.m.name)}</div>
-        <div class="barwrap" style="margin-top:4px"><span style="width:${l.open/maxLoad*100}%"></span></div></div>
-        <div class="cnt">${l.open} open</div></div>`).join('')
-      : `<div style="color:var(--muted);font-size:13px;padding:6px 0">No tasks assigned yet.</div>`}
-    </div>
-  </div>
-  <div class="card pad">
-    <b style="font-size:14px">Recent activity</b>
-    <div style="margin-top:6px">
-    ${activity.length?activity.map(a=>`<div class="rank"><span style="font-size:18px">${a.ic}</span><div style="flex:1;font-size:13px">${esc(a.txt)}</div><div class="cnt">${timeAgo(a.ts)}</div></div>`).join(''):`<div style="color:var(--muted);font-size:13px;padding:6px 0">Nothing yet.</div>`}
-    </div>
-  </div>`;
+  ${hpmSection()}`;
 }
 function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
 function exportReportImage(){
