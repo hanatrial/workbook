@@ -607,8 +607,8 @@ function isOnline(memberId){ return !!(presence[memberId] && presence[memberId].
    else in `state` that's shared (stories, tasks, photos, members) mirrors
    to Firebase automatically through persist(). Works fully offline when
    FIREBASE_CONFIG is null; nothing below ever runs in that case. */
-const SYNC_COLLECTIONS = ['stories','tasks','photos','members'];
-let lastSynced = { stories:{}, tasks:{}, photos:{}, members:{} };
+const SYNC_COLLECTIONS = ['stories','tasks','photos','members','hpmEntries'];
+let lastSynced = { stories:{}, tasks:{}, photos:{}, members:{}, hpmEntries:{} };
 function syncToFirebase(){
   if(!fbDb) return;
   SYNC_COLLECTIONS.forEach(coll=>{
@@ -657,7 +657,7 @@ function seed(){
   const members = TEAM_NAMES.map((name,i)=>(
     { id:'m'+(i+1), name, role:'Sulawesi Terdepan', color:AVATAR_COLORS[i%AVATAR_COLORS.length] }
   ));
-  return { version:1, members, currentUserId:null, photos:[], tasks:[], stories:[], lastSeen:{cerita:0,tasks:0} };
+  return { version:1, members, currentUserId:null, photos:[], tasks:[], stories:[], hpmEntries:[], lastSeen:{cerita:0,tasks:0} };
 }
 let state = DB.load() || seed();      // init AFTER seed()/TEAM_NAMES are defined (avoids TDZ on fresh load)
 function persist(){ DB.save(state); syncToFirebase(); }
@@ -733,7 +733,7 @@ const NAV = [
   {id:'feed', label:'Foto',   svg:'photo'},
   {id:'tasks',label:'Tugas',  svg:'check'},
   {id:'board',label:'Board',  svg:'board'},
-  {id:'dash', label:'Report', svg:'chart'},
+  {id:'dash', label:'HPM', svg:'chart'},
   {id:'team', label:'Tim',    svg:'people'},
 ];
 function navIcon(k){
@@ -950,6 +950,114 @@ function boardCard(t,key){
   </div>`;
 }
 
+/* ---- HPM (PO log per distributor, input only Mon/Wed/Fri, show Count=0 rows) ---- */
+const HPM_DISTRIBUTORS = [
+  {code:'46049',      name:'BORWITA CITRA PRIMA PT (Gorontalo)'},
+  {code:'200046049',  name:'BORWITA CITRA PRIMA PT.- (Bone)'},
+  {code:'47063',      name:'BORWITA CITRA PRIMA PT-MKS (Bone)'},
+  {code:'47120',      name:'BORWITA CITRA PRIMA PT-MDO (Manado)'},
+  {code:'47579',      name:'BORWITA CITRA PRIMA PT-BAU (Baubau)'},
+  {code:'6000044191', name:'BORWITA CITRA PRIMA PT-PLP (Palopo)'},
+  {code:'6000044482', name:'BORWITA CITRA PRIMA PT-MMJ (Mamuju)'},
+  {code:'100044296',  name:'BORWITA CITRA PRIMA PT-PLU (Palu)'},
+  {code:'6000033032', name:'BINA SAN PRIMA PT - MKS (Makassar)'},
+  {code:'6400033032', name:'BINA SAN PRIMA PT - MKS. (Makassar)'},
+  {code:'100043127',  name:'BINA SAN PRIMA PT - MDO (Manado)'},
+  {code:'6100040269', name:'MATAKAR KENDARI PT-KND (Kendari)'},
+];
+function hpmDistName(code){ return (HPM_DISTRIBUTORS.find(d=>d.code===code)||{}).name || code; }
+function isHpmInputDay(){ return [1,3,5].includes(new Date().getDay()); }
+function nextHpmInputLabel(){
+  const days=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  const today=new Date(); today.setHours(0,0,0,0);
+  for(let i=1;i<=7;i++){
+    const d=new Date(today); d.setDate(d.getDate()+i);
+    if([1,3,5].includes(d.getDay())) return days[d.getDay()]+', '+d.toLocaleDateString(undefined,{day:'numeric',month:'short'});
+  }
+  return '';
+}
+function hpmSection(){
+  const canInput = isHpmInputDay();
+  const zero = (state.hpmEntries||[]).filter(e=>Number(e.count)===0);
+  const groups={};
+  zero.forEach(e=>{ (groups[e.distCode]=groups[e.distCode]||[]).push(e); });
+  const distCodes = Object.keys(groups).sort((a,b)=>hpmDistName(a).localeCompare(hpmDistName(b)));
+  return `<div class="card pad" style="margin-bottom:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <b style="font-size:14px">HPM — PO Count = 0 per distributor</b>
+      <button class="btn ${canInput?'':'ghost'}" style="margin:0;padding:8px 14px;font-size:13px" onclick="openAddHpmEntry()" ${canInput?'':'disabled'}>${canInput?'+ Tambah':'🔒 Terkunci'}</button>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-top:4px">${canInput?'Input tersedia hari ini (Senin/Rabu/Jumat).':'Input hanya di hari Senin/Rabu/Jumat. Berikutnya: '+nextHpmInputLabel()}</div>
+    <div style="margin-top:10px">
+    ${distCodes.length? distCodes.map(code=>`
+      <div style="margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:6px">${esc(hpmDistName(code))} <span style="color:var(--muted);font-weight:500">(${groups[code].length})</span></div>
+        <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+          <thead><tr style="color:var(--muted);text-align:left">
+            <th style="padding:4px 8px 4px 0">PO#</th><th style="padding:4px 8px">Store</th>
+            <th style="padding:4px 8px">Order Date</th><th style="padding:4px 8px">Not Before</th><th style="padding:4px 8px">Not After</th><th></th>
+          </tr></thead>
+          <tbody>
+          ${groups[code].sort((a,b)=>b.createdAt-a.createdAt).map(e=>`<tr style="border-top:1px solid var(--sand)">
+            <td style="padding:5px 8px 5px 0;font-weight:600">${esc(e.po)}</td>
+            <td style="padding:5px 8px">${esc(e.store||'')}</td>
+            <td style="padding:5px 8px">${esc(e.orderDate||'')}</td>
+            <td style="padding:5px 8px">${esc(e.notBefore||'')}</td>
+            <td style="padding:5px 8px">${esc(e.notAfter||'')}</td>
+            <td style="padding:5px 0"><button class="btn ghost" style="margin:0;padding:4px 8px;font-size:11px" onclick="deleteHpmEntry('${e.id}')">✕</button></td>
+          </tr>`).join('')}
+          </tbody>
+        </table>
+        </div>
+      </div>`).join('')
+      : `<div style="color:var(--muted);font-size:13px;padding:6px 0">Belum ada PO dengan Count = 0.</div>`}
+    </div>
+  </div>`;
+}
+function openAddHpmEntry(){
+  if(!isHpmInputDay()){ toast('Input hanya di hari Senin/Rabu/Jumat'); return; }
+  const opts = HPM_DISTRIBUTORS.map(d=>`<option value="${d.code}">${esc(d.name)} — ${d.code}</option>`).join('');
+  sheet('Tambah PO', `
+    <label style="font-size:12px;color:var(--muted)">Distributor</label>
+    <select class="in" id="hpmDist" style="margin-top:4px">${opts}</select>
+    <label style="font-size:12px;color:var(--muted);margin-top:8px;display:block">PO#</label>
+    <input class="in" id="hpmPo" placeholder="PO#" style="margin-top:4px"/>
+    <label style="font-size:12px;color:var(--muted);margin-top:8px;display:block">Store</label>
+    <input class="in" id="hpmStore" placeholder="Store" style="margin-top:4px"/>
+    <label style="font-size:12px;color:var(--muted);margin-top:8px;display:block">Order Date</label>
+    <input class="in" id="hpmOrderDate" type="date" style="margin-top:4px"/>
+    <label style="font-size:12px;color:var(--muted);margin-top:8px;display:block">Not Before</label>
+    <input class="in" id="hpmNotBefore" type="date" style="margin-top:4px"/>
+    <label style="font-size:12px;color:var(--muted);margin-top:8px;display:block">Not After</label>
+    <input class="in" id="hpmNotAfter" type="date" style="margin-top:4px"/>
+    <label style="font-size:12px;color:var(--muted);margin-top:8px;display:block">Count</label>
+    <input class="in" id="hpmCount" type="number" min="0" value="0" style="margin-top:4px"/>
+    <button class="btn" style="margin-top:14px" onclick="addHpmEntry()">Simpan</button>
+  `);
+  setTimeout(()=>$('#hpmPo')?.focus(),60);
+}
+function addHpmEntry(){
+  if(!isHpmInputDay()){ toast('Input hanya di hari Senin/Rabu/Jumat'); closeSheet(); return; }
+  const distCode=$('#hpmDist').value;
+  const po=($('#hpmPo').value||'').trim();
+  const store=($('#hpmStore').value||'').trim();
+  const orderDate=$('#hpmOrderDate').value;
+  const notBefore=$('#hpmNotBefore').value;
+  const notAfter=$('#hpmNotAfter').value;
+  const count=Number($('#hpmCount').value||0);
+  if(!po){ toast('PO# wajib diisi'); return; }
+  state.hpmEntries=state.hpmEntries||[];
+  state.hpmEntries.push({id:uid(), distCode, po, store, orderDate, notBefore, notAfter, count, createdAt:Date.now()});
+  persist(); closeSheet(); render(); toast('Tersimpan ✓');
+}
+function deleteHpmEntry(id){
+  confirmSheet('Hapus entri ini?', ()=>{
+    state.hpmEntries=(state.hpmEntries||[]).filter(e=>e.id!==id);
+    persist(); render(); closeSheet();
+  });
+}
+
 /* ---- DASHBOARD ---- */
 function viewDash(){
   const T=state.tasks, done=T.filter(t=>t.status==='done').length, doing=T.filter(t=>t.status==='doing').length, todo=T.filter(t=>t.status==='todo').length;
@@ -965,8 +1073,9 @@ function viewDash(){
     ...state.tasks.map(t=>({ts:t.createdAt,txt:`Task “${t.title}” → ${member(t.picId)?.name.split(' ')[0]||'?'}`,ic:'✅'})),
   ].sort((a,b)=>b.ts-a.ts).slice(0,6);
   const R=34, CIRC=2*Math.PI*R, off=CIRC*(1-pct/100);
-  return `<div class="view-title"><div><h2>Report</h2><div class="sub">Team progress at a glance</div></div></div>
+  return `<div class="view-title"><div><h2>HPM</h2><div class="sub">Team progress at a glance</div></div></div>
   <button class="btn ghost" onclick="exportReportImage()" style="margin-top:0;margin-bottom:14px">📤 Export as image</button>
+  ${hpmSection()}
   <div class="card pad ring-card">
     <svg class="ring" viewBox="0 0 84 84" role="img" aria-label="Progress ${pct} persen">
       <circle cx="42" cy="42" r="${R}" fill="none" stroke="var(--sand)" stroke-width="9"/>
