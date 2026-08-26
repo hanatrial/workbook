@@ -115,14 +115,34 @@ async function meratusSchedule(nodes, originName, destNames) {
   return out;
 }
 
-/* ---------------- SPIL ---------------- */
+/* ---------------- SPIL ----------------
+   Hitting /port/select cold (no cookie, no referer, back-to-back for 7
+   destinations) reads as a bot and gets rate-limited/blocked. Warm up a
+   session against the homepage first, send the cookie + a real referer on
+   every request, and pace requests out instead of firing them instantly. */
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let spilCookieJar = null;
+async function spilWarmup() {
+  if (spilCookieJar !== null) return spilCookieJar;
+  try {
+    const res = await fetchT('https://www.myspil.com/myspilcom/', { headers: BROWSER_HEADERS });
+    const cookies = typeof res.headers.getSetCookie === 'function' ? res.headers.getSetCookie() : [];
+    spilCookieJar = cookies.map(c => c.split(';')[0]).join('; ');
+  } catch {
+    spilCookieJar = '';
+  }
+  return spilCookieJar;
+}
 async function spilSchedule(originName, destNames) {
+  const cookie = await spilWarmup();
   const originTitle = originName[0] + originName.slice(1).toLowerCase();
   const out = [];
   for (const destName of destNames) {
     const destTitle = destName === 'BITUNG' ? 'Manado' : destName === 'PALU' ? 'Palu' : destName[0] + destName.slice(1).toLowerCase();
     const url = `https://www.myspil.com/myspilcom/port/select?portfrom=${encodeURIComponent(originTitle)}&portto%5B%5D=${encodeURIComponent(destTitle)}&etd=&vesselname=&vesselid=`;
-    const html = await fetchT(url, { headers: BROWSER_HEADERS }).then(r => r.text()).catch(() => '');
+    const headers = { ...BROWSER_HEADERS, Referer: 'https://www.myspil.com/myspilcom/', ...(cookie ? { Cookie: cookie } : {}) };
+    const html = await fetchT(url, { headers }).then(r => r.text()).catch(() => '');
+    await sleep(1200); // don't hammer 7 destinations back-to-back
     const re = /<input type="hidden" name="([a-zA-Z_]+)" value="([^"]*)">/g;
     let m, cur = null;
     const seen = new Set();
