@@ -78,7 +78,8 @@ async function tantoSchedule(cities, originName, destNames) {
   const out = [];
   (res.data || []).forEach(d => {
     (d.jadwal || []).filter(r => !r.error).forEach(r => {
-      out.push({ dest: d.kota_tujuan, carrier: 'Tanto', vessel: r.vessel, etd: r.tgl_etd, eta: r.tgl_eta || '-', route: r.is_direct ? 'Direct' : 'Transit' });
+      const notes = r.tgl_close ? `Closing ${r.tgl_close}` : '';
+      out.push({ dest: d.kota_tujuan, carrier: 'Tanto', vessel: r.vessel, etd: r.tgl_etd, eta: r.tgl_eta || '-', route: r.is_direct ? 'Direct' : 'Transit', notes });
     });
   });
   return out;
@@ -109,7 +110,11 @@ async function meratusSchedule(nodes, originName, destNames) {
     const params = new URLSearchParams({ por: pol.portCode, del: del.portCode, etd: new Date().toISOString().slice(0, 10) });
     const res = await fetchT(`${MERATUS_API}/schedules?${params}`, { headers: MERATUS_HEADERS }).then(r => r.json()).catch(() => null);
     (res?.items || []).forEach(it => {
-      out.push({ dest: destName, carrier: 'Meratus', vessel: `${it.vesselName} / ${it.voyageNo}`, etd: it.etd, eta: it.eta, route: it.routingType || 'Direct' });
+      const notesParts = [];
+      if (it.openStack) notesParts.push(`Open Stack ${fmtWIB(it.openStack)}`);
+      if (it.closingDateDry) notesParts.push(`Close CY Dry ${fmtWIB(it.closingDateDry)}`);
+      if (it.siSubmission) notesParts.push(`SI Submission ${fmtWIB(it.siSubmission)}`);
+      out.push({ dest: destName, carrier: 'Meratus', vessel: `${it.vesselName} / ${it.voyageNo}`, etd: it.etd, eta: it.eta, route: it.routingType || 'Direct', notes: notesParts.join('; ') });
     });
   }
   return out;
@@ -157,7 +162,11 @@ async function spilSchedule(originName, destNames) {
       const key = r.vesselname + r.voyageno + r.etd_char;
       if (seen.has(key)) return;
       seen.add(key);
-      out.push({ dest: destName, carrier: 'SPIL', vessel: `${r.vesselname} / ${r.voyageno}`, etd: r.etd_char, eta: r.eta, route: 'Direct' });
+      // SPIL's hidden-input fields only confirmed to carry closingdate — don't
+      // invent Open Stack/route fields that weren't actually observed in the
+      // response (see openShipFromSched notes below for what IS available).
+      const notes = r.closingdate ? `Closing ${r.closingdate}` : '';
+      out.push({ dest: destName, carrier: 'SPIL', vessel: `${r.vesselname} / ${r.voyageno}`, etd: r.etd_char, eta: r.eta, route: 'Direct', notes });
     }
   }
   return out;
@@ -191,7 +200,12 @@ async function temasSchedule(originCode, originName, destNames, destCodes) {
       const vessels = direct
         ? `${c.segments[0].vessel.name} / ${c.segments[0].voyageNumber}`
         : `${c.segments[0].vessel.name} / ${c.segments[0].voyageNumber} -> ... -> ${c.segments[c.segments.length - 1].vessel.name} / ${c.segments[c.segments.length - 1].voyageNumber}`;
-      out.push({ dest: destName, carrier: 'Temas', vessel: vessels, etd: c.estimatedDepartureAt, eta: c.estimatedArrivalAt, route: direct ? 'Direct' : 'Transit' });
+      const firstSeg = c.segments[0];
+      const notesParts = [];
+      if (firstSeg.openStackingAt) notesParts.push(`Open Stack ${fmtWIB(firstSeg.openStackingAt)}`);
+      if (firstSeg.closeStackingAt) notesParts.push(`Close Stacking ${fmtWIB(firstSeg.closeStackingAt)}`);
+      if (firstSeg.closeDocumentAt) notesParts.push(`Close Document ${fmtWIB(firstSeg.closeDocumentAt)}`);
+      out.push({ dest: destName, carrier: 'Temas', vessel: vessels, etd: c.estimatedDepartureAt, eta: c.estimatedArrivalAt, route: direct ? 'Direct' : 'Transit', notes: notesParts.join('; ') });
     });
   }
   return out;
@@ -199,11 +213,11 @@ async function temasSchedule(originCode, originName, destNames, destCodes) {
 
 /* ---------------- Report assembly ---------------- */
 function toMarkdownTable(rows) {
-  const head = ['Carrier', 'Vessel/Voyage', 'ETD', 'ETA', 'Route Type'];
+  const head = ['Carrier', 'Vessel/Voyage', 'ETD', 'ETA', 'Route Type', 'Notes'];
   const lines = [
     `| ${head.join(' | ')} |`,
     `|${head.map(() => '---').join('|')}|`,
-    ...rows.map(r => `| ${r.carrier} | ${r.vessel} | ${fmtDate(r.etd)} | ${fmtDate(r.eta)} | ${r.route} |`),
+    ...rows.map(r => `| ${r.carrier} | ${r.vessel} | ${fmtDate(r.etd)} | ${fmtDate(r.eta)} | ${r.route} | ${(r.notes || '—').replace(/\|/g, '/')} |`),
   ];
   return lines.join('\n');
 }
