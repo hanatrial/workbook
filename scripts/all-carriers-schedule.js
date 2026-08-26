@@ -205,7 +205,8 @@ async function main() {
   const out = [`# Jadwal Kapal Jakarta & Surabaya - ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`, ''];
 
   for (const originName of ORIGINS) {
-    out.push(`## Dari ${originName[0] + originName.slice(1).toLowerCase()}`, '');
+    const originLabel = originName[0] + originName.slice(1).toLowerCase();
+    out.push(`**Dari ${originLabel}**`, '');
     const [tanto, meratus, spil, temas] = await Promise.all([
       tantoSchedule(tCities, originName, DESTINATIONS),
       meratusSchedule(mNodes, originName, DESTINATIONS),
@@ -221,7 +222,10 @@ async function main() {
       const label = destName === 'BITUNG' ? 'Bitung (Manado)' : destName === 'PALU' ? 'Palu (Pantoloan)' : destName[0] + destName.slice(1).toLowerCase();
       const rows = all.filter(r => r.dest === destName).sort((a, b) => new Date(a.etd) - new Date(b.etd));
       if (!rows.length) continue; // no carrier has this route right now
-      out.push(`### ${label}`, '');
+      // Single "## " heading level, matching the app's markdown parser exactly
+      // (it only recognizes "## " as a destination heading; "### " falls
+      // through as plain text and breaks click-to-fill).
+      out.push(`## ${originLabel} - ${label}`, '');
       out.push(toMarkdownTable(rows), '');
     }
   }
