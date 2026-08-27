@@ -22,8 +22,10 @@ const path = require('path');
 const ORIGINS = ['JAKARTA', 'SURABAYA'];
 // Canonical destination names used for matching against each carrier's own
 // port list. "BITUNG" covers Manado traffic (no carrier here sails direct
-// to Manado's own port); "PANTOLOAN" covers Palu.
-const DESTINATIONS = ['MAKASSAR', 'KENDARI', 'GORONTALO', 'POSO', 'BITUNG', 'PALU', 'MOROWALI (BUNGKU)'];
+// to Manado's own port); "PANTOLOAN" covers Palu. Not every carrier serves
+// Luwuk/Baubau either (Tanto and Meratus mostly don't) — those combinations
+// are silently skipped the same way as the other gaps.
+const DESTINATIONS = ['MAKASSAR', 'KENDARI', 'GORONTALO', 'POSO', 'BITUNG', 'PALU', 'MOROWALI (BUNGKU)', 'LUWUK', 'BAUBAU'];
 
 const BROWSER_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
@@ -97,6 +99,8 @@ async function meratusNodes() {
 function meratusFindNode(nodes, destName) {
   if (destName === 'BITUNG') return nodes['BITUNG'];
   if (destName === 'PALU') return nodes['PANTOLOAN'];
+  if (destName === 'BAUBAU') return nodes['BAU-BAU']; // Meratus lists it with a dash
+  // LUWUK has no Meratus node at all — meratusSchedule() just gets nothing back for it.
   const hit = Object.keys(nodes).find(n => n.includes(destName));
   return hit ? nodes[hit] : null;
 }
