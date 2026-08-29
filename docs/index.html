@@ -1343,7 +1343,7 @@ function viewShipments(){
         <div><small>ETA</small><b>${s.eta?fmtDate(s.eta):'—'}</b></div>
       </div>
       ${linesTable}
-      <div style="color:var(--muted);font-size:11px;margin-top:8px">Added by ${esc(member(s.creatorId)?.name.split(' ')[0]||'—')} · ${timeAgo(s.createdAt)}</div>
+      <div style="color:var(--muted);font-size:11px;margin-top:8px">Updated ${timeAgo(s.createdAt)} by ${member(s.creatorId)?esc(member(s.creatorId).name.split(' ')[0]):'🤖 Auto-checker'}</div>
     </div>`;
   }).join('');
   const summary = q ? `<div style="font-size:12.5px;color:var(--muted);margin-bottom:10px">${shown?`${shown} shipment${shown===1?'':'s'} for "${esc(shipSiteFilter)}" — ${notArrived} not yet arrived`:`No shipments found for "${esc(shipSiteFilter)}"`}</div>` : '';
