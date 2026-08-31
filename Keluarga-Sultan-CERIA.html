@@ -825,6 +825,15 @@ function initDataSync(){
       });
     });
   }).catch(e=>console.warn('Firebase initial sync failed:', e));
+  fbDb.ref('hpmMeta/lastChecked').on('value', snap=>{
+    const ts = snap.val();
+    if(ts){ state.hpmLastChecked = ts; DB.save(state); render(); }
+  });
+}
+function setHpmLastChecked(ts){
+  state.hpmLastChecked = ts;
+  DB.save(state);
+  if(fbDb) fbDb.ref('hpmMeta/lastChecked').set(ts);
 }
 
 /* ---------------- Seed / state ---------------------------------------- */
@@ -833,7 +842,7 @@ function seed(){
   const members = TEAM_NAMES.map((name,i)=>(
     { id:'m'+(i+1), name, role:'Sulawesi Terdepan', color:AVATAR_COLORS[i%AVATAR_COLORS.length] }
   ));
-  return { version:1, members, currentUserId:null, photos:[], tasks:[], stories:[], standup:[], shipments:[], schedreport:[], meetings:[], hpmEntries:[], lastSeen:{cerita:0,tasks:0} };
+  return { version:1, members, currentUserId:null, photos:[], tasks:[], stories:[], standup:[], shipments:[], schedreport:[], meetings:[], hpmEntries:[], hpmLastChecked:null, lastSeen:{cerita:0,tasks:0} };
 }
 let state = DB.load() || seed();      // init AFTER seed()/TEAM_NAMES are defined (avoids TDZ on fresh load)
 function persist(){ DB.save(state); syncToFirebase(); }
@@ -1377,7 +1386,10 @@ function buildShipmentUpdateText(){
   const recent=list.filter(s=>inRange(s,lastWeekStart,lastWeekEnd)).sort((a,b)=> a.eta<b.eta?-1:1);
   const upcoming=list.filter(s=>inRange(s,thisWeekStart,thisWeekEnd)).sort((a,b)=> a.eta<b.eta?-1:1);
   const overdue=list.filter(s=>shipmentEtdPassedNotArrived(s)).sort((a,b)=> a.eta<b.eta?-1:1);
-  const shipLine=s=>`${s.destinations||'—'}\n${s.vessel}, ETA: ${fmtDate(s.eta)}`;
+  const siteLines=s=>(s.lines&&s.lines.length)
+    ? s.lines.map(l=>`${l.site||'—'} (SO: ${l.soNo||'—'})`).join('\n')
+    : (s.destinations||'—');
+  const shipLine=s=>`${siteLines(s)}\n${s.vessel}, ETA: ${fmtDate(s.eta)}`;
   const lines=[`*Vessel Update — ${new Date().toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}*`, ''];
   if(overdue.length){
     lines.push(`⚠️ *ETA SUDAH LEWAT, BELUM SAMPAI (${overdue.length})*`);
@@ -1721,6 +1733,7 @@ function hpmSection(){
       <button class="btn ${canInput?'':'ghost'}" style="margin:0;padding:8px 14px;font-size:13px" onclick="openAddHpmEntry()" ${canInput?'':'disabled'}>${canInput?'+ Tambah':'🔒 Terkunci'}</button>
     </div>
     <div style="font-size:12px;color:var(--muted);margin-top:4px">${canInput?'Input tersedia hari ini (Senin/Rabu/Jumat).':'Input hanya di hari Senin/Rabu/Jumat. Berikutnya: '+nextHpmInputLabel()}</div>
+    ${state.hpmLastChecked?`<div style="color:var(--muted);font-size:11px;margin-top:6px">Updated ${timeAgo(state.hpmLastChecked)} by 🤖 Auto-checker</div>`:''}
     <div style="margin-top:10px">
     ${distCodes.length? distCodes.map(code=>`
       <div style="margin-bottom:14px">
