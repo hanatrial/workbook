@@ -801,6 +801,22 @@ function syncToFirebase(){
     toDelete.forEach(id=>{ fbDb.ref(coll+'/'+id).remove(); delete lastSynced[coll][id]; });
   });
 }
+/* Tombstones: a stale client (old tab, cached PWA, phone left open) can still have a
+   deleted hpmEntries record in memory and re-`set` it verbatim on its next sync, making
+   the deletion look like it "didn't stick". Recording the id in hpmDeleted lets every
+   client — including that stale one, once it reloads — recognize and self-heal the
+   resurrection instead of just trusting whatever the last writer sent. */
+let hpmDeletedIds = new Set();
+function hpmPurgeTombstoned(){
+  if(!state.hpmEntries || !state.hpmEntries.length) return;
+  const before = state.hpmEntries.length;
+  state.hpmEntries = state.hpmEntries.filter(e=>{
+    const dead = hpmDeletedIds.has(e.id);
+    if(dead && fbDb) fbDb.ref('hpmEntries/'+e.id).remove();
+    return !dead;
+  });
+  if(state.hpmEntries.length!==before){ DB.save(state); render(); }
+}
 function initDataSync(){
   if(!fbDb) return;
   Promise.all(SYNC_COLLECTIONS.map(coll=>
@@ -813,8 +829,11 @@ function initDataSync(){
       state[coll] = Object.values(remote);
       lastSynced[coll] = {}; Object.keys(remote).forEach(id=>{ lastSynced[coll][id]=JSON.stringify(remote[id]); });
     })
-  )).then(()=>{
+  ).concat(fbDb.ref('hpmDeleted').once('value').then(snap=>{
+    hpmDeletedIds = new Set(Object.keys(snap.val()||{}));
+  }))).then(()=>{
     firebaseSyncPrimed=true;
+    hpmPurgeTombstoned();
     DB.save(state); render();
     SYNC_COLLECTIONS.forEach(coll=>{
       fbDb.ref(coll).on('value', snap=>{
@@ -822,7 +841,12 @@ function initDataSync(){
         lastSynced[coll] = {}; Object.keys(val).forEach(id=>{ lastSynced[coll][id]=JSON.stringify(val[id]); });
         state[coll] = Object.values(val);
         DB.save(state); render();
+        if(coll==='hpmEntries') hpmPurgeTombstoned();
       });
+    });
+    fbDb.ref('hpmDeleted').on('value', snap=>{
+      hpmDeletedIds = new Set(Object.keys(snap.val()||{}));
+      hpmPurgeTombstoned();
     });
   }).catch(e=>console.warn('Firebase initial sync failed:', e));
   fbDb.ref('hpmMeta/lastChecked').on('value', snap=>{
@@ -1797,6 +1821,8 @@ function addHpmEntry(){
 function deleteHpmEntry(id){
   confirmSheet('Hapus entri ini?', ()=>{
     state.hpmEntries=(state.hpmEntries||[]).filter(e=>e.id!==id);
+    hpmDeletedIds.add(id);
+    if(fbDb) fbDb.ref('hpmDeleted/'+id).set(true);
     persist(); render(); closeSheet();
   });
 }
