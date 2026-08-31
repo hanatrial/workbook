@@ -1376,8 +1376,14 @@ function shareShipmentsToWhatsApp(){
   };
   const recent=list.filter(s=>inRange(s,lastWeekStart,lastWeekEnd)).sort((a,b)=> a.eta<b.eta?-1:1);
   const upcoming=list.filter(s=>inRange(s,thisWeekStart,thisWeekEnd)).sort((a,b)=> a.eta<b.eta?-1:1);
+  const overdue=list.filter(s=>shipmentEtdPassedNotArrived(s)).sort((a,b)=> a.eta<b.eta?-1:1);
   const shipLine=s=>`${s.destinations||'—'}\n${s.vessel}, ETA: ${fmtDate(s.eta)}`;
   const lines=[`*Vessel Update — ${new Date().toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}*`, ''];
+  if(overdue.length){
+    lines.push(`⚠️ *ETA SUDAH LEWAT, BELUM SAMPAI (${overdue.length})*`);
+    lines.push(overdue.map(shipLine).join('\n\n'));
+    lines.push('');
+  }
   lines.push(`✅ *Tiba minggu lalu (cek bongkar)*`);
   lines.push(recent.length?recent.map(shipLine).join('\n\n'):'- Tidak ada');
   lines.push('');

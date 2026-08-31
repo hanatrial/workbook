@@ -759,8 +759,8 @@ function isOnline(memberId){ return !!(presence[memberId] && presence[memberId].
    else in `state` that's shared (stories, tasks, photos, members) mirrors
    to Firebase automatically through persist(). Works fully offline when
    FIREBASE_CONFIG is null; nothing below ever runs in that case. */
-const SYNC_COLLECTIONS = ['stories','tasks','photos','members','standup','shipments','schedreport','meetings'];
-let lastSynced = { stories:{}, tasks:{}, photos:{}, members:{} };
+const SYNC_COLLECTIONS = ['stories','tasks','photos','members','standup','shipments','schedreport','meetings','hpmEntries'];
+let lastSynced = { stories:{}, tasks:{}, photos:{}, members:{}, hpmEntries:{} };
 let firebaseSyncPrimed=false;
 /* Deletes (and other edits) made before the initial pull from the shared database finishes get
    silently discarded when that pull lands and overwrites local state — the item then looks like
@@ -833,7 +833,7 @@ function seed(){
   const members = TEAM_NAMES.map((name,i)=>(
     { id:'m'+(i+1), name, role:'Sulawesi Terdepan', color:AVATAR_COLORS[i%AVATAR_COLORS.length] }
   ));
-  return { version:1, members, currentUserId:null, photos:[], tasks:[], stories:[], standup:[], shipments:[], schedreport:[], meetings:[], lastSeen:{cerita:0,tasks:0} };
+  return { version:1, members, currentUserId:null, photos:[], tasks:[], stories:[], standup:[], shipments:[], schedreport:[], meetings:[], hpmEntries:[], lastSeen:{cerita:0,tasks:0} };
 }
 let state = DB.load() || seed();      // init AFTER seed()/TEAM_NAMES are defined (avoids TDZ on fresh load)
 function persist(){ DB.save(state); syncToFirebase(); }
@@ -914,7 +914,7 @@ const NAV = [
   {id:'board',  label:'Board',  svg:'board'},
   {id:'update', label:'Update', svg:'note'},
   {id:'ship',   label:'Ship',   svg:'ship'},
-  {id:'dash',   label:'Report', svg:'chart'},
+  {id:'dash',   label:'HPM', svg:'chart'},
   {id:'team',   label:'Team',   svg:'people'},
 ];
 /* Notulensi meeting — only visible to these three; everyone else never sees the tab or its data prompt. */
@@ -1376,8 +1376,14 @@ function shareShipmentsToWhatsApp(){
   };
   const recent=list.filter(s=>inRange(s,lastWeekStart,lastWeekEnd)).sort((a,b)=> a.eta<b.eta?-1:1);
   const upcoming=list.filter(s=>inRange(s,thisWeekStart,thisWeekEnd)).sort((a,b)=> a.eta<b.eta?-1:1);
+  const overdue=list.filter(s=>shipmentEtdPassedNotArrived(s)).sort((a,b)=> a.eta<b.eta?-1:1);
   const shipLine=s=>`${s.destinations||'—'}\n${s.vessel}, ETA: ${fmtDate(s.eta)}`;
   const lines=[`*Vessel Update — ${new Date().toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}*`, ''];
+  if(overdue.length){
+    lines.push(`⚠️ *ETA SUDAH LEWAT, BELUM SAMPAI (${overdue.length})*`);
+    lines.push(overdue.map(shipLine).join('\n\n'));
+    lines.push('');
+  }
   lines.push(`✅ *Tiba minggu lalu (cek bongkar)*`);
   lines.push(recent.length?recent.map(shipLine).join('\n\n'):'- Tidak ada');
   lines.push('');
@@ -1656,22 +1662,122 @@ function saveSchedReport(){
   persist(); closeSheet(); route='ship'; shipSubTab='sched'; render(); toast('Schedule published 🗓️');
 }
 
+/* ---- HPM (PO log per distributor, input only Mon/Wed/Fri, show Count=0 rows) ---- */
+const HPM_DISTRIBUTORS = [
+  {code:'46049',      name:'BORWITA CITRA PRIMA PT (Gorontalo)'},
+  {code:'200046049',  name:'BORWITA CITRA PRIMA PT.- (Bone)'},
+  {code:'47063',      name:'BORWITA CITRA PRIMA PT-MKS (Bone)'},
+  {code:'47120',      name:'BORWITA CITRA PRIMA PT-MDO (Manado)'},
+  {code:'47579',      name:'BORWITA CITRA PRIMA PT-BAU (Baubau)'},
+  {code:'6000044191', name:'BORWITA CITRA PRIMA PT-PLP (Palopo)'},
+  {code:'6000044482', name:'BORWITA CITRA PRIMA PT-MMJ (Mamuju)'},
+  {code:'100044296',  name:'BORWITA CITRA PRIMA PT-PLU (Palu)'},
+  {code:'6000033032', name:'BINA SAN PRIMA PT - MKS (Makassar)'},
+  {code:'6400033032', name:'BINA SAN PRIMA PT - MKS. (Makassar)'},
+  {code:'100043127',  name:'BINA SAN PRIMA PT - MDO (Manado)'},
+  {code:'6100040269', name:'MATAKAR KENDARI PT-KND (Kendari)'},
+];
+function hpmDistName(code){ return (HPM_DISTRIBUTORS.find(d=>d.code===code)||{}).name || code; }
+function isHpmInputDay(){ return [1,3,5].includes(new Date().getDay()); }
+function nextHpmInputLabel(){
+  const days=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  const today=new Date(); today.setHours(0,0,0,0);
+  for(let i=1;i<=7;i++){
+    const d=new Date(today); d.setDate(d.getDate()+i);
+    if([1,3,5].includes(d.getDay())) return days[d.getDay()]+', '+d.toLocaleDateString(undefined,{day:'numeric',month:'short'});
+  }
+  return '';
+}
+function hpmSection(){
+  const canInput = isHpmInputDay();
+  const zero = (state.hpmEntries||[]).filter(e=>Number(e.count)===0);
+  const groups={};
+  zero.forEach(e=>{ (groups[e.distCode]=groups[e.distCode]||[]).push(e); });
+  const distCodes = Object.keys(groups).sort((a,b)=>hpmDistName(a).localeCompare(hpmDistName(b)));
+  return `<div class="card pad" style="margin-bottom:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <b style="font-size:14px">HPM — PO Count = 0 per distributor</b>
+      <button class="btn ${canInput?'':'ghost'}" style="margin:0;padding:8px 14px;font-size:13px" onclick="openAddHpmEntry()" ${canInput?'':'disabled'}>${canInput?'+ Tambah':'🔒 Terkunci'}</button>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-top:4px">${canInput?'Input tersedia hari ini (Senin/Rabu/Jumat).':'Input hanya di hari Senin/Rabu/Jumat. Berikutnya: '+nextHpmInputLabel()}</div>
+    <div style="margin-top:10px">
+    ${distCodes.length? distCodes.map(code=>`
+      <div style="margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:6px">${esc(hpmDistName(code))} <span style="color:var(--muted);font-weight:500">(${groups[code].length})</span></div>
+        <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+          <thead><tr style="color:var(--muted);text-align:left">
+            <th style="padding:4px 8px 4px 0">PO#</th><th style="padding:4px 8px">Store</th>
+            <th style="padding:4px 8px">Order Date</th><th style="padding:4px 8px">Not Before</th><th style="padding:4px 8px">Not After</th><th></th>
+          </tr></thead>
+          <tbody>
+          ${groups[code].sort((a,b)=>b.createdAt-a.createdAt).map(e=>`<tr style="border-top:1px solid var(--sand)">
+            <td style="padding:5px 8px 5px 0;font-weight:600">${esc(e.po)}</td>
+            <td style="padding:5px 8px">${esc(e.store||'')}</td>
+            <td style="padding:5px 8px">${esc(e.orderDate||'')}</td>
+            <td style="padding:5px 8px">${esc(e.notBefore||'')}</td>
+            <td style="padding:5px 8px">${esc(e.notAfter||'')}</td>
+            <td style="padding:5px 0"><button class="btn ghost" style="margin:0;padding:4px 8px;font-size:11px" onclick="deleteHpmEntry('${e.id}')">✕</button></td>
+          </tr>`).join('')}
+          </tbody>
+        </table>
+        </div>
+      </div>`).join('')
+      : `<div style="color:var(--muted);font-size:13px;padding:6px 0">Belum ada PO dengan Count = 0.</div>`}
+    </div>
+  </div>`;
+}
+function openAddHpmEntry(){
+  if(!isHpmInputDay()){ toast('Input hanya di hari Senin/Rabu/Jumat'); return; }
+  const opts = HPM_DISTRIBUTORS.map(d=>`<option value="${d.code}">${esc(d.name)} — ${d.code}</option>`).join('');
+  sheet('Tambah PO', `
+    <label style="font-size:12px;color:var(--muted)">Distributor</label>
+    <select class="in" id="hpmDist" style="margin-top:4px">${opts}</select>
+    <label style="font-size:12px;color:var(--muted);margin-top:8px;display:block">PO#</label>
+    <input class="in" id="hpmPo" placeholder="PO#" style="margin-top:4px"/>
+    <label style="font-size:12px;color:var(--muted);margin-top:8px;display:block">Store</label>
+    <input class="in" id="hpmStore" placeholder="Store" style="margin-top:4px"/>
+    <label style="font-size:12px;color:var(--muted);margin-top:8px;display:block">Order Date</label>
+    <input class="in" id="hpmOrderDate" type="date" style="margin-top:4px"/>
+    <label style="font-size:12px;color:var(--muted);margin-top:8px;display:block">Not Before</label>
+    <input class="in" id="hpmNotBefore" type="date" style="margin-top:4px"/>
+    <label style="font-size:12px;color:var(--muted);margin-top:8px;display:block">Not After</label>
+    <input class="in" id="hpmNotAfter" type="date" style="margin-top:4px"/>
+    <label style="font-size:12px;color:var(--muted);margin-top:8px;display:block">Count</label>
+    <input class="in" id="hpmCount" type="number" min="0" value="0" style="margin-top:4px"/>
+    <button class="btn" style="margin-top:14px" onclick="addHpmEntry()">Simpan</button>
+  `);
+  setTimeout(()=>$('#hpmPo')?.focus(),60);
+}
+function addHpmEntry(){
+  if(!isHpmInputDay()){ toast('Input hanya di hari Senin/Rabu/Jumat'); closeSheet(); return; }
+  const distCode=$('#hpmDist').value;
+  const po=($('#hpmPo').value||'').trim();
+  const store=($('#hpmStore').value||'').trim();
+  const orderDate=$('#hpmOrderDate').value;
+  const notBefore=$('#hpmNotBefore').value;
+  const notAfter=$('#hpmNotAfter').value;
+  const count=Number($('#hpmCount').value||0);
+  if(!po){ toast('PO# wajib diisi'); return; }
+  state.hpmEntries=state.hpmEntries||[];
+  state.hpmEntries.push({id:uid(), distCode, po, store, orderDate, notBefore, notAfter, count, createdAt:Date.now()});
+  persist(); closeSheet(); render(); toast('Tersimpan ✓');
+}
+function deleteHpmEntry(id){
+  confirmSheet('Hapus entri ini?', ()=>{
+    state.hpmEntries=(state.hpmEntries||[]).filter(e=>e.id!==id);
+    persist(); render(); closeSheet();
+  });
+}
+
 /* ---- DASHBOARD ---- */
 function viewDash(){
   const T=state.tasks, done=T.filter(t=>t.status==='done').length, doing=T.filter(t=>t.status==='doing').length, todo=T.filter(t=>t.status==='todo').length;
   const overdue=T.filter(t=>t.status!=='done'&&t.due&&dueState(t.due)?.t.startsWith('Overdue')).length;
   const pct=T.length?Math.round(done/T.length*100):0;
   const seg=(n,col)=>T.length?`<span style="width:${n/T.length*100}%;background:${col}"></span>`:'';
-  // load per member (open tasks)
-  const load=state.members.map(m=>({m, open:T.filter(t=>t.picId===m.id&&t.status!=='done').length, tot:T.filter(t=>t.picId===m.id).length}))
-    .sort((a,b)=>b.open-a.open);
-  const maxLoad=Math.max(1,...load.map(l=>l.open));
-  const activity=[
-    ...state.photos.map(p=>({ts:p.createdAt,txt:`${member(p.authorId)?.name.split(' ')[0]||'?'} shared a photo`,ic:'📷'})),
-    ...state.tasks.map(t=>({ts:t.createdAt,txt:`Task “${t.title}” → ${member(t.picId)?.name.split(' ')[0]||'?'}`,ic:'✅'})),
-  ].sort((a,b)=>b.ts-a.ts).slice(0,6);
   const R=34, CIRC=2*Math.PI*R, off=CIRC*(1-pct/100);
-  return `<div class="view-title"><div><h2>Report</h2><div class="sub">Team progress at a glance</div></div></div>
+  return `<div class="view-title"><div><h2>HPM</h2><div class="sub">Team progress at a glance</div></div></div>
   <button class="btn ghost" onclick="exportReportImage()" style="margin-top:0;margin-bottom:14px">📤 Export as image</button>
   <div class="card pad ring-card">
     <svg class="ring" viewBox="0 0 84 84" role="img" aria-label="Progress ${pct} persen">
@@ -1694,22 +1800,7 @@ function viewDash(){
     <div class="bar" style="margin-top:12px">${seg(todo,'#94a3b8')}${seg(doing,'#f59e0b')}${seg(done,'#16a34a')}</div>
     <div class="legend"><span><i style="background:#94a3b8"></i>To Do ${todo}</span><span><i style="background:#f59e0b"></i>Doing ${doing}</span><span><i style="background:#16a34a"></i>Done ${done}</span></div>
   </div>
-  <div class="card pad" style="margin-bottom:14px">
-    <b style="font-size:14px">Workload — open tasks per PIC</b>
-    <div style="margin-top:10px">
-    ${load.filter(l=>l.tot>0).length? load.filter(l=>l.tot>0).map(l=>`<div class="rank">${avatar(l.m.id)}
-        <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(l.m.name)}</div>
-        <div class="barwrap" style="margin-top:4px"><span style="width:${l.open/maxLoad*100}%"></span></div></div>
-        <div class="cnt">${l.open} open</div></div>`).join('')
-      : `<div style="color:var(--muted);font-size:13px;padding:6px 0">No tasks assigned yet.</div>`}
-    </div>
-  </div>
-  <div class="card pad">
-    <b style="font-size:14px">Recent activity</b>
-    <div style="margin-top:6px">
-    ${activity.length?activity.map(a=>`<div class="rank"><span style="font-size:18px">${a.ic}</span><div style="flex:1;font-size:13px">${esc(a.txt)}</div><div class="cnt">${timeAgo(a.ts)}</div></div>`).join(''):`<div style="color:var(--muted);font-size:13px;padding:6px 0">Nothing yet.</div>`}
-    </div>
-  </div>`;
+  ${hpmSection()}`;
 }
 function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
 function exportReportImage(){
