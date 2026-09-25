@@ -1529,7 +1529,8 @@ function meetingRows(){
   (state.meetings||[]).forEach(m=>{
     (m.rows||[]).forEach(r=>rows.push({...r, meetingId:m.id, source:m.source, date:m.date}));
   });
-  return rows.sort((a,b)=> (b.date||'').localeCompare(a.date||'') || (a.area||'').localeCompare(b.area||''));
+  // Not-yet-checked items first so open work sits at the top; then newest note, then area.
+  return rows.sort((a,b)=> (a.done?1:0)-(b.done?1:0) || (b.date||'').localeCompare(a.date||'') || (a.area||'').localeCompare(b.area||''));
 }
 let meetingAreaFilter='all';
 let meetingDoneFilter='all';   // all | done | open
