@@ -1556,7 +1556,7 @@ function viewMeetingSummaries(){
         </div>
         <div style="display:flex;gap:10px;align-items:center">
           <button class="link-btn" onclick="openMeetingSummary('${m.id}')">${m.summary?'Edit':'Tambah summary'}</button>
-          <button class="link-btn" style="color:var(--danger)" onclick="deleteMeeting('${m.id}')">Hapus</button>
+          ${m.summary?`<button class="link-btn" style="color:var(--danger)" onclick="deleteMeetingSummary('${m.id}')">Hapus summary</button>`:''}
         </div>
       </div>
       ${body}
@@ -1660,6 +1660,7 @@ function saveMeetingSummary(meetingId){
   const m=(state.meetings||[]).find(x=>x.id===meetingId); if(!m) return closeSheet();
   const text=$('#mgSummaryEdit').value.trim();
   if(text) m.summary=text; else delete m.summary;
+  if(!text && !(m.rows||[]).length) state.meetings=(state.meetings||[]).filter(x=>x.id!==meetingId);   // nothing left in it
   persist(); closeSheet(); render(); toast(text?'Summary tersimpan 📝':'Summary dihapus');
 }
 function toggleMeetingRow(meetingId,rowId){
@@ -1672,14 +1673,15 @@ function updateMeetingRowNotes(meetingId,rowId,val){
   const r=(m.rows||[]).find(x=>x.id===rowId); if(!r) return;
   r.notes=val; persist();
 }
-function deleteMeeting(id){
+function deleteMeetingSummary(id){
   if(!hasMeetingAccess() || syncNotReady()) return;
-  const m=(state.meetings||[]).find(x=>x.id===id); if(!m) return;
+  const m=(state.meetings||[]).find(x=>x.id===id); if(!m || !m.summary) return;
   const n=(m.rows||[]).length;
-  confirmSheet(`Hapus notulensi "${m.source||'Tanpa judul'}"${n?` beserta ${n} action item`:''}? Gak bisa dibalikin.`, ()=>{
-    state.meetings=(state.meetings||[]).filter(x=>x.id!==id);
-    persist(); closeSheet(); render(); toast('Notulensi dihapus');
-  }, {title:'Hapus notulensi?', confirmLabel:'Hapus'});
+  confirmSheet(`Hapus summary "${m.source||'Tanpa judul'}"?${n?` ${n} action item tetap ada.`:''}`, ()=>{
+    delete m.summary;
+    if(!(m.rows||[]).length) state.meetings=(state.meetings||[]).filter(x=>x.id!==id);   // nothing left in it
+    persist(); closeSheet(); render(); toast('Summary dihapus');
+  }, {title:'Hapus summary?', confirmLabel:'Hapus summary'});
 }
 function deleteMeetingRow(meetingId,rowId){
   confirmSheet('Hapus action item ini? Gak bisa dibalikin.', ()=>{
