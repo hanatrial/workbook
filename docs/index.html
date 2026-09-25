@@ -1554,7 +1554,10 @@ function viewMeetingSummaries(){
           <b style="font-size:15px">📝 ${esc(m.source||'Tanpa judul')}</b>
           <div style="font-size:12.5px;color:var(--muted);margin-top:4px">${m.date?fmtDate(m.date):'—'} · ${(m.rows||[]).length} action item${openCount?` (${openCount} belum dicentang)`:''}</div>
         </div>
-        <button class="link-btn" onclick="openMeetingSummary('${m.id}')">${m.summary?'Edit':'Tambah summary'}</button>
+        <div style="display:flex;gap:10px;align-items:center">
+          <button class="link-btn" onclick="openMeetingSummary('${m.id}')">${m.summary?'Edit':'Tambah summary'}</button>
+          <button class="link-btn" style="color:var(--danger)" onclick="deleteMeeting('${m.id}')">Hapus</button>
+        </div>
       </div>
       ${body}
     </div>`;
@@ -1668,6 +1671,15 @@ function updateMeetingRowNotes(meetingId,rowId,val){
   const m=(state.meetings||[]).find(x=>x.id===meetingId); if(!m) return;
   const r=(m.rows||[]).find(x=>x.id===rowId); if(!r) return;
   r.notes=val; persist();
+}
+function deleteMeeting(id){
+  if(!hasMeetingAccess() || syncNotReady()) return;
+  const m=(state.meetings||[]).find(x=>x.id===id); if(!m) return;
+  const n=(m.rows||[]).length;
+  confirmSheet(`Hapus notulensi "${m.source||'Tanpa judul'}"${n?` beserta ${n} action item`:''}? Gak bisa dibalikin.`, ()=>{
+    state.meetings=(state.meetings||[]).filter(x=>x.id!==id);
+    persist(); closeSheet(); render(); toast('Notulensi dihapus');
+  }, {title:'Hapus notulensi?', confirmLabel:'Hapus'});
 }
 function deleteMeetingRow(meetingId,rowId){
   confirmSheet('Hapus action item ini? Gak bisa dibalikin.', ()=>{
