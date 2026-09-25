@@ -1528,7 +1528,39 @@ function meetingRows(){
 }
 let meetingAreaFilter='all';
 let meetingDoneFilter='all';   // all | done | open
+let meetingTab='action';       // action | summary
 function viewMeetings(){
+  const seg=`<div class="seg" style="margin-bottom:14px">
+    <button class="${meetingTab==='action'?'on':''}" onclick="meetingTab='action';render()">✅ Action</button>
+    <button class="${meetingTab==='summary'?'on':''}" onclick="meetingTab='summary';render()">📝 Summary</button>
+  </div>`;
+  const sub = meetingTab==='summary' ? 'Ringkasan meeting (non-action)' : 'PR per bahasan';
+  return `<div class="view-title"><div><h2>Notulensi</h2><div class="sub">${sub} — khusus Lisa, Imad &amp; Jose</div></div></div>
+  <button class="btn ghost" style="margin-bottom:14px" onclick="openMeetingForm()">➕ Tambah notulensi</button>
+  ${seg}
+  ${meetingTab==='summary' ? viewMeetingSummaries() : viewMeetingActions()}`;
+}
+function viewMeetingSummaries(){
+  const list=(state.meetings||[]).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'') || (b.createdAt||0)-(a.createdAt||0));
+  if(!list.length) return `<div class="card pad" style="color:var(--muted);font-size:13.5px">Belum ada notulensi. Tambahkan yang pertama 📝</div>`;
+  return list.map(m=>{
+    const openCount=(m.rows||[]).filter(r=>!r.done).length;
+    const body = m.summary
+      ? `<div style="white-space:pre-wrap;font-size:14px;line-height:1.6;margin-top:12px">${esc(m.summary)}</div>`
+      : `<div style="color:var(--muted);font-size:13.5px;margin-top:12px">Belum ada summary untuk meeting ini.</div>`;
+    return `<div class="card pad" style="margin-bottom:14px">
+      <div style="display:flex;align-items:flex-start;gap:8px">
+        <div style="flex:1">
+          <b style="font-size:15px">📝 ${esc(m.source||'Tanpa judul')}</b>
+          <div style="font-size:12.5px;color:var(--muted);margin-top:4px">${m.date?fmtDate(m.date):'—'} · ${(m.rows||[]).length} action item${openCount?` (${openCount} belum dicentang)`:''}</div>
+        </div>
+        <button class="link-btn" onclick="openMeetingSummary('${m.id}')">${m.summary?'Edit':'Tambah summary'}</button>
+      </div>
+      ${body}
+    </div>`;
+  }).join('');
+}
+function viewMeetingActions(){
   const allRows=meetingRows();
   const areas=[...new Set(allRows.map(r=>r.area))].sort((a,b)=>a.localeCompare(b));
   if(meetingAreaFilter!=='all' && !areas.includes(meetingAreaFilter)) meetingAreaFilter='all';
@@ -1557,9 +1589,7 @@ function viewMeetings(){
       <td style="padding:9px 8px;border-bottom:1px solid var(--line)"><input class="in" style="padding:6px 8px;font-size:13px;min-width:140px" value="${esc(r.notes||'')}" placeholder="—" onchange="updateMeetingRowNotes('${r.meetingId}','${r.id}',this.value)"/></td>
       <td style="padding:9px 8px;border-bottom:1px solid var(--line);text-align:center"><button class="link-btn" style="color:var(--danger)" onclick="deleteMeetingRow('${r.meetingId}','${r.id}')">Hapus</button></td>
     </tr>`).join('') : `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px 10px">${allRows.length?'Gak ada action item untuk area ini.':'Belum ada notulensi. Tambahkan yang pertama 📝'}</td></tr>`;
-  return `<div class="view-title"><div><h2>Notulensi</h2><div class="sub">PR per bahasan — khusus Lisa, Imad &amp; Jose</div></div></div>
-  <button class="btn ghost" style="margin-bottom:14px" onclick="openMeetingForm()">➕ Tambah notulensi</button>
-  ${chips}
+  return `${chips}
   <div class="card pad" style="overflow-x:auto">
   <table style="width:100%;border-collapse:collapse;font-size:13.5px;min-width:820px">
     <thead><tr style="text-align:left;color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">
@@ -1592,21 +1622,42 @@ function openMeetingForm(){
     <input class="in" id="mgSource" placeholder="e.g. Meeting Regional Sulawesi"/>
     <label class="f">Tanggal catatan</label>
     <input class="in" type="date" id="mgDate" value="${new Date().toISOString().slice(0,10)}"/>
-    <label class="f">Paste notulensi (nama area, lalu poin bernomor)</label>
+    <label class="f">Summary meeting (opsional — ringkasan pembahasan, bukan action)</label>
+    <textarea class="in" id="mgSummaryNew" rows="6" placeholder="Ringkasan hasil meeting, poin-poin pembahasan…"></textarea>
+    <label class="f">Paste action item (nama area, lalu poin bernomor)</label>
     <textarea class="in" id="mgPaste" rows="10" placeholder="Makassar&#10;1. Pindahkan toko2 pak irfan mt ke cindy&#10;2. ...&#10;&#10;Kendari&#10;1. ..." oninput="previewMeetingPaste()"></textarea>
     <div id="mgPreview" style="margin-top:8px;font-size:12.5px;color:var(--muted)">Belum ada action item terdeteksi</div>
     <button class="btn primary" onclick="saveMeeting()">Simpan notulensi</button>`);
 }
 function saveMeeting(){
   const rows=parseMeetingPaste($('#mgPaste').value);
-  if(!rows.length) return toast('Gak ada action item yang kedetek — cek formatnya');
+  const summary=$('#mgSummaryNew').value.trim();
+  if(!rows.length && !summary) return toast('Isi summary atau paste action item dulu — belum ada yang kedetek');
   const source=$('#mgSource').value.trim(), date=$('#mgDate').value||null;
   state.meetings=state.meetings||[];
-  state.meetings.push({
+  const meeting={
     id:uid(), source, date, creatorId:state.currentUserId, createdAt:Date.now(),
     rows: rows.map(r=>({id:uid(), area:r.area, action:r.action, done:false, notes:''}))
-  });
-  persist(); closeSheet(); route='meeting'; render(); toast(`Notulensi tersimpan — ${rows.length} action item 📝`);
+  };
+  if(summary) meeting.summary=summary;
+  state.meetings.push(meeting);
+  persist(); closeSheet(); route='meeting'; if(!rows.length) meetingTab='summary'; render();
+  toast(rows.length ? `Notulensi tersimpan — ${rows.length} action item 📝` : 'Summary tersimpan 📝');
+}
+function openMeetingSummary(meetingId){
+  if(!hasMeetingAccess()) return;
+  const m=(state.meetings||[]).find(x=>x.id===meetingId); if(!m) return;
+  sheet('Summary meeting', `
+    <div style="font-size:13px;color:var(--muted);margin:2px 2px 10px">${esc(m.source||'Tanpa judul')} · ${m.date?fmtDate(m.date):'—'}</div>
+    <textarea class="in" id="mgSummaryEdit" rows="14" placeholder="Ringkasan hasil meeting, poin-poin pembahasan…">${esc(m.summary||'')}</textarea>
+    <button class="btn primary" onclick="saveMeetingSummary('${m.id}')">Simpan summary</button>`);
+}
+function saveMeetingSummary(meetingId){
+  if(!hasMeetingAccess()) return;
+  const m=(state.meetings||[]).find(x=>x.id===meetingId); if(!m) return closeSheet();
+  const text=$('#mgSummaryEdit').value.trim();
+  if(text) m.summary=text; else delete m.summary;
+  persist(); closeSheet(); render(); toast(text?'Summary tersimpan 📝':'Summary dihapus');
 }
 function toggleMeetingRow(meetingId,rowId){
   const m=(state.meetings||[]).find(x=>x.id===meetingId); if(!m) return;
@@ -1622,7 +1673,7 @@ function deleteMeetingRow(meetingId,rowId){
   confirmSheet('Hapus action item ini? Gak bisa dibalikin.', ()=>{
     const m=(state.meetings||[]).find(x=>x.id===meetingId); if(!m) return closeSheet();
     m.rows=(m.rows||[]).filter(x=>x.id!==rowId);
-    if(!m.rows.length) state.meetings=(state.meetings||[]).filter(x=>x.id!==meetingId);
+    if(!m.rows.length && !m.summary) state.meetings=(state.meetings||[]).filter(x=>x.id!==meetingId);
     persist(); closeSheet(); render(); toast('Action item dihapus');
   });
 }
