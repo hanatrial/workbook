@@ -1543,11 +1543,12 @@ function viewMeetings(){
 function viewMeetingSummaries(){
   const list=(state.meetings||[]).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'') || (b.createdAt||0)-(a.createdAt||0));
   if(!list.length) return `<div class="card pad" style="color:var(--muted);font-size:13.5px">Belum ada notulensi. Tambahkan yang pertama 📝</div>`;
-  return list.map(m=>{
+  // Only meetings that actually have a summary get a card. The rest (action-only)
+  // are folded into one collapsed row so they don't clutter the tab, but there's
+  // still a way to attach a summary to them later.
+  const withSummary=list.filter(m=>m.summary), without=list.filter(m=>!m.summary);
+  const cards=withSummary.map(m=>{
     const openCount=(m.rows||[]).filter(r=>!r.done).length;
-    const body = m.summary
-      ? `<div style="white-space:pre-wrap;font-size:14px;line-height:1.6;margin-top:12px">${esc(m.summary)}</div>`
-      : `<div style="color:var(--muted);font-size:13.5px;margin-top:12px">Belum ada summary untuk meeting ini.</div>`;
     return `<div class="card pad" style="margin-bottom:14px">
       <div style="display:flex;align-items:flex-start;gap:8px">
         <div style="flex:1">
@@ -1555,13 +1556,25 @@ function viewMeetingSummaries(){
           <div style="font-size:12.5px;color:var(--muted);margin-top:4px">${m.date?fmtDate(m.date):'—'} · ${(m.rows||[]).length} action item${openCount?` (${openCount} belum dicentang)`:''}</div>
         </div>
         <div style="display:flex;gap:10px;align-items:center">
-          <button class="link-btn" onclick="openMeetingSummary('${m.id}')">${m.summary?'Edit':'Tambah summary'}</button>
-          ${m.summary?`<button class="link-btn" style="color:var(--danger)" onclick="deleteMeetingSummary('${m.id}')">Hapus summary</button>`:''}
+          <button class="link-btn" onclick="openMeetingSummary('${m.id}')">Edit</button>
+          <button class="link-btn" style="color:var(--danger)" onclick="deleteMeetingSummary('${m.id}')">Hapus summary</button>
         </div>
       </div>
-      ${body}
+      <div style="white-space:pre-wrap;font-size:14px;line-height:1.6;margin-top:12px">${esc(m.summary)}</div>
     </div>`;
   }).join('');
+  const empty = withSummary.length ? '' : `<div class="card pad" style="color:var(--muted);font-size:13.5px;margin-bottom:14px">Belum ada summary. Pakai "Tambah notulensi" atau buka daftar di bawah untuk nambahin ke meeting yang sudah ada.</div>`;
+  const folded = without.length ? `<details class="card pad" style="margin-bottom:14px">
+    <summary style="cursor:pointer;font-weight:700;font-size:13.5px;color:var(--muted)">Notulensi tanpa summary (${without.length})</summary>
+    ${without.map(m=>`<div style="display:flex;align-items:center;gap:8px;margin-top:12px">
+      <div style="flex:1;min-width:0">
+        <b style="font-size:14px">${esc(m.source||'Tanpa judul')}</b>
+        <div style="font-size:12px;color:var(--muted)">${m.date?fmtDate(m.date):'—'} · ${(m.rows||[]).length} action item</div>
+      </div>
+      <button class="link-btn" onclick="openMeetingSummary('${m.id}')">Tambah summary</button>
+    </div>`).join('')}
+  </details>` : '';
+  return empty + cards + folded;
 }
 function viewMeetingActions(){
   const allRows=meetingRows();
