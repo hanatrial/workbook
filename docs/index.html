@@ -241,6 +241,11 @@
   .sched-h2{font-size:18px;margin:4px 0 10px}
   .sched-h3{font-size:15px;margin:16px 0 6px;color:var(--brand-ink,var(--brand))}
   .sched-p{font-size:13px;margin:6px 0;color:var(--ink)}
+  .mtg-sum{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px}
+  .mtg-sum::-webkit-details-marker{display:none}
+  .mtg-chev{color:var(--muted);font-size:16px;transition:transform .2s ease}
+  .mtg-card[open] .mtg-chev{transform:rotate(180deg)}
+  .mtg-sum:focus-visible{outline:2px solid var(--brand);outline-offset:4px;border-radius:8px}
   .sched-table{border-collapse:collapse;font-size:12.5px;min-width:100%}
   .sched-table th,.sched-table td{border:1px solid var(--line);padding:6px 9px;text-align:left;white-space:nowrap}
   .sched-table tr.sched-row{cursor:pointer}
@@ -1529,6 +1534,8 @@ function meetingRows(){
 let meetingAreaFilter='all';
 let meetingDoneFilter='all';   // all | done | open
 let meetingTab='action';       // action | summary
+const meetingOpen=new Set();   // ids of Summary dropdowns currently open (+ '__folded'), survives re-renders
+function setMeetingOpen(key,open){ if(open) meetingOpen.add(key); else meetingOpen.delete(key); }
 function viewMeetings(){
   const seg=`<div class="seg" style="margin-bottom:14px">
     <button class="${meetingTab==='action'?'on':''}" onclick="meetingTab='action';render()">✅ Action</button>
@@ -1546,33 +1553,42 @@ function viewMeetingSummaries(){
   // Only meetings that actually have a summary get a card. The rest (action-only)
   // are folded into one collapsed row so they don't clutter the tab, but there's
   // still a way to attach a summary to them later.
-  const withSummary=list.filter(m=>m.summary), without=list.filter(m=>!m.summary);
+  const withSummary=list.filter(m=>m.summary), without=list.filter(m=>!m.summary && !m.summaryHidden);
+  const hiddenCount=list.filter(m=>!m.summary && m.summaryHidden).length;
+  // Each summary is a dropdown: the header is just the title + date, the text opens on click.
+  // Open state is remembered across re-renders (live sync re-renders the tab) so a card
+  // you're reading doesn't snap shut.
+  const longDate=d=>new Date(d+'T00:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
   const cards=withSummary.map(m=>{
     const openCount=(m.rows||[]).filter(r=>!r.done).length;
-    return `<div class="card pad" style="margin-bottom:14px">
-      <div style="display:flex;align-items:flex-start;gap:8px">
-        <div style="flex:1">
-          <b style="font-size:15px">📝 ${esc(m.source||'Tanpa judul')}</b>
-          <div style="font-size:12.5px;color:var(--muted);margin-top:4px">${m.date?fmtDate(m.date):'—'} · ${(m.rows||[]).length} action item${openCount?` (${openCount} belum dicentang)`:''}</div>
+    const title=`${esc(m.source||'Tanpa judul')}${m.date?` (${longDate(m.date)})`:''}`;
+    return `<details class="card pad mtg-card" style="margin-bottom:14px" ${meetingOpen.has(m.id)?'open':''} ontoggle="setMeetingOpen('${m.id}',this.open)">
+      <summary class="mtg-sum">
+        <div style="flex:1;min-width:0">
+          <b style="font-size:15px">📝 ${title}</b>
+          <div style="font-size:12.5px;color:var(--muted);margin-top:4px">${(m.rows||[]).length} action item${openCount?` (${openCount} belum dicentang)`:''}</div>
         </div>
-        <div style="display:flex;gap:10px;align-items:center">
-          <button class="link-btn" onclick="openMeetingSummary('${m.id}')">Edit</button>
-          <button class="link-btn" style="color:var(--danger)" onclick="deleteMeetingSummary('${m.id}')">Hapus summary</button>
-        </div>
+        <span class="mtg-chev" aria-hidden="true">▾</span>
+      </summary>
+      <div style="display:flex;gap:14px;margin-top:12px">
+        <button class="link-btn" onclick="openMeetingSummary('${m.id}')">Edit</button>
+        <button class="link-btn" style="color:var(--danger)" onclick="deleteMeetingSummary('${m.id}')">Hapus summary</button>
       </div>
-      <div style="white-space:pre-wrap;font-size:14px;line-height:1.6;margin-top:12px">${esc(m.summary)}</div>
-    </div>`;
+      <div style="white-space:pre-wrap;font-size:14px;line-height:1.6;margin-top:10px">${esc(m.summary)}</div>
+    </details>`;
   }).join('');
   const empty = withSummary.length ? '' : `<div class="card pad" style="color:var(--muted);font-size:13.5px;margin-bottom:14px">Belum ada summary. Pakai "Tambah notulensi" atau buka daftar di bawah untuk nambahin ke meeting yang sudah ada.</div>`;
-  const folded = without.length ? `<details class="card pad" style="margin-bottom:14px">
+  const folded = (without.length || hiddenCount) ? `<details class="card pad" style="margin-bottom:14px" ${meetingOpen.has('__folded')?'open':''} ontoggle="setMeetingOpen('__folded',this.open)">
     <summary style="cursor:pointer;font-weight:700;font-size:13.5px;color:var(--muted)">Notulensi tanpa summary (${without.length})</summary>
-    ${without.map(m=>`<div style="display:flex;align-items:center;gap:8px;margin-top:12px">
+    ${without.map(m=>`<div style="display:flex;align-items:center;gap:10px;margin-top:12px">
       <div style="flex:1;min-width:0">
         <b style="font-size:14px">${esc(m.source||'Tanpa judul')}</b>
         <div style="font-size:12px;color:var(--muted)">${m.date?fmtDate(m.date):'—'} · ${(m.rows||[]).length} action item</div>
       </div>
       <button class="link-btn" onclick="openMeetingSummary('${m.id}')">Tambah summary</button>
+      <button class="link-btn" style="color:var(--muted)" onclick="hideMeetingFromSummary('${m.id}')">Hapus dari daftar</button>
     </div>`).join('')}
+    ${hiddenCount?`<div style="margin-top:14px;font-size:12px;color:var(--muted)">${hiddenCount} disembunyikan dari daftar (action tetap ada) · <button class="link-btn" style="padding:0;font-size:12px" onclick="showHiddenMeetings()">Tampilkan lagi</button></div>`:''}
   </details>` : '';
   return empty + cards + folded;
 }
@@ -1672,7 +1688,7 @@ function saveMeetingSummary(meetingId){
   if(!hasMeetingAccess()) return;
   const m=(state.meetings||[]).find(x=>x.id===meetingId); if(!m) return closeSheet();
   const text=$('#mgSummaryEdit').value.trim();
-  if(text) m.summary=text; else delete m.summary;
+  if(text){ m.summary=text; delete m.summaryHidden; } else delete m.summary;
   if(!text && !(m.rows||[]).length) state.meetings=(state.meetings||[]).filter(x=>x.id!==meetingId);   // nothing left in it
   persist(); closeSheet(); render(); toast(text?'Summary tersimpan 📝':'Summary dihapus');
 }
@@ -1685,6 +1701,18 @@ function updateMeetingRowNotes(meetingId,rowId,val){
   const m=(state.meetings||[]).find(x=>x.id===meetingId); if(!m) return;
   const r=(m.rows||[]).find(x=>x.id===rowId); if(!r) return;
   r.notes=val; persist();
+}
+// Only hides the entry from the "tanpa summary" list — the notulensi and all its action items are untouched.
+function hideMeetingFromSummary(id){
+  if(!hasMeetingAccess()) return;
+  const m=(state.meetings||[]).find(x=>x.id===id); if(!m) return;
+  m.summaryHidden=true;
+  persist(); render(); toast('Dihapus dari daftar — action item tetap ada');
+}
+function showHiddenMeetings(){
+  if(!hasMeetingAccess()) return;
+  (state.meetings||[]).forEach(m=>{ if(m.summaryHidden) delete m.summaryHidden; });
+  persist(); render();
 }
 function deleteMeetingSummary(id){
   if(!hasMeetingAccess() || syncNotReady()) return;
