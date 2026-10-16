@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<title>Ship Monitor</title>
+<style>
+:root{--bg:#f3eee5;--card:#fffdf9;--ink:#221d18;--mut:#6b6055;--line:#e9e2d6;--warn:#f59e0b;--ok:#137a5a;--bad:#c63a47;--brand:#0f766e}
+@media(prefers-color-scheme:dark){:root{--bg:#181512;--card:#221d18;--ink:#f3eee5;--mut:#9c9186;--line:#332c25}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font:15px/1.4 system-ui,-apple-system,Roboto,sans-serif;background:var(--bg);color:var(--ink);padding:0 14px 40px;max-width:520px;margin:auto}
+header{display:flex;align-items:center;justify-content:space-between;padding:16px 0 8px}
+h1{font-size:20px;margin:0}
+#sync{font-size:11px;color:var(--mut)}
+button{font:inherit;border:0;cursor:pointer}
+#rf{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 10px;color:var(--ink)}
+.kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 12px}
+.kpi button{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 4px;color:var(--ink)}
+.kpi b{display:block;font-size:22px}
+.kpi small{font-size:11px;color:var(--mut)}
+.kpi .on{outline:2px solid var(--brand)}
+select{width:100%;padding:10px;margin-bottom:12px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:inherit}
+.c{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--warn);border-radius:14px;padding:11px 12px;margin-bottom:10px}
+.c.soon{border-left-color:var(--brand)}.c.late{border-left-color:var(--bad)}.c.done{border-left-color:var(--ok);opacity:.75}
+.t{display:flex;justify-content:space-between;gap:8px;font-weight:700}
+.d{font-size:12px;font-weight:700;white-space:nowrap;color:var(--warn)}
+.soon .d{color:var(--brand)}.late .d{color:var(--bad)}.done .d{color:var(--ok)}
+.m{font-size:12.5px;color:var(--mut);margin-top:3px}
+.dt{display:flex;gap:6px;margin-top:8px;font-size:12px}
+.dt span{flex:1;background:rgba(127,127,127,.1);border-radius:8px;padding:5px 8px}
+.dt i{display:block;font-style:normal;font-size:10px;color:var(--mut);text-transform:uppercase}
+.e{text-align:center;color:var(--mut);padding:30px 0}
+</style>
+</head>
+<body>
+<header><h1>🚢 Ship Monitor</h1><div><span id="sync"></span> <button id="rf">↻</button></div></header>
+<div class="kpi" id="kpi"></div>
+<select id="site"></select>
+<div id="list"><div class="e">Memuat…</div></div>
+<script>
+var DB='https://workbook-ks-default-rtdb.asia-southeast1.firebasedatabase.app/shipments.json',K='shipMonitor',tab='sail',data=[];
+var $=function(i){return document.getElementById(i)};
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function day(s){return s?new Date(s+'T00:00:00'):null}
+function today(){var d=new Date();d.setHours(0,0,0,0);return d}
+function arrived(s){if(s.status==='Sudah Sampai')return true;if(s.status==='Belum Sampai')return false;var e=day(s.eta);return !!e&&e<=today()}
+function dd(s){return Math.round((day(s.eta)-today())/864e5)}
+function fd(s){if(!s)return'—';var d=day(s);return d.getDate()+' '+['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][d.getMonth()]}
+function sites(s){var a=[];(s.lines||[]).forEach(function(l){if(l.site&&a.indexOf(l.site)<0)a.push(l.site)});if(!a.length&&s.destinations)a=s.destinations.split(',').map(function(x){return x.trim()}).filter(Boolean);return a}
+function kind(s){if(arrived(s))return'done';if(!s.eta)return'sail';var n=dd(s);return n<0?'late':n<=3?'soon':'sail'}
+function label(s,k){if(k==='done')return'Sampai';if(!s.eta)return'';var n=dd(s);return n<0?'Telat '+(-n)+'h':n===0?'Hari ini':'H-'+n}
+function render(){
+  var q=$('site').value,w=today().getTime()-7*864e5;
+  var all=data.filter(function(s){return !q||sites(s).indexOf(q)>=0});
+  var c={sail:0,soon:0,done:0};
+  all.forEach(function(s){var k=kind(s);if(k==='done'){if(!s.eta||day(s.eta)>=w)c.done++}else{c.sail++;if(k==='soon')c.soon++}});
+  $('kpi').innerHTML=[['sail','Berlayar',c.sail],['soon','Tiba ≤3 hari',c.soon],['done','Sampai 7h',c.done]].map(function(x){return'<button data-t="'+x[0]+'" class="'+(tab===x[0]?'on':'')+'"><b>'+x[2]+'</b><small>'+x[1]+'</small></button>'}).join('');
+  var l=all.filter(function(s){var k=kind(s);return tab==='done'?k==='done'&&(!s.eta||day(s.eta)>=w):tab==='soon'?k==='soon'||k==='late':k!=='done'});
+  l.sort(function(a,b){return(a.eta||'9999')<(b.eta||'9999')?(tab==='done'?1:-1):(tab==='done'?-1:1)});
+  $('list').innerHTML=l.length?l.map(function(s){var k=kind(s),n=(s.lines||[]).length,st=sites(s),x=(s.lines||[])[0]||{};
+    return'<div class="c '+k+'"><div class="t"><span>'+esc(s.vessel)+'</span><span class="d">'+label(s,k)+'</span></div>'
+    +'<div class="m">📍 '+esc(st.join(', '))+'</div>'
+    +(x.shippingLine?'<div class="m">🚚 '+esc(x.shippingLine)+(n?' · '+n+' SO':'')+'</div>':'')
+    +'<div class="dt"><span><i>Closing</i>'+fd(s.closing)+'</span><span><i>ETD</i>'+fd(s.etd)+'</span><span><i>ETA</i>'+fd(s.eta)+'</span></div></div>'}).join(''):'<div class="e">Tidak ada kapal</div>';
+}
+function fill(){
+  var set={};data.forEach(function(s){sites(s).forEach(function(x){set[x]=1})});
+  var cur=$('site').value;
+  $('site').innerHTML='<option value="">Semua site / distributor</option>'+Object.keys(set).sort().map(function(x){return'<option>'+esc(x)+'</option>'}).join('');
+  $('site').value=cur;
+}
+function set(o){data=Object.keys(o||{}).map(function(k){return o[k]}).filter(function(s){return s&&s.vessel});fill();render()}
+function load(){
+  $('sync').textContent='…';
+  fetch(DB).then(function(r){return r.json()}).then(function(o){
+    try{localStorage.setItem(K,JSON.stringify(o))}catch(e){}
+    set(o);var d=new Date();$('sync').textContent=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)
+  }).catch(function(){$('sync').textContent='offline'})
+}
+$('kpi').onclick=function(e){var b=e.target.closest('button');if(b){tab=b.dataset.t;render()}};
+$('site').onchange=render;$('rf').onclick=load;
+document.addEventListener('visibilitychange',function(){if(!document.hidden)load()});
+try{var c=JSON.parse(localStorage.getItem(K));if(c)set(c)}catch(e){}
+load();
+</script>
+</body>
+</html>
