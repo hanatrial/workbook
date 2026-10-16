@@ -48,6 +48,10 @@ select option{color:#000}
 .so b{display:block;margin-top:8px;font-size:12px;color:var(--sail)}.so div{display:flex;justify-content:space-between;gap:6px;padding:3px 0;font-variant-numeric:tabular-nums}.so s{color:var(--ok);text-decoration:none}
 details{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin-bottom:10px}summary{font-weight:800;cursor:pointer}summary small{display:block;font-weight:400;color:var(--mut);font-size:12px;margin-top:3px}
 .og{font-size:12px;font-weight:800;color:var(--soon);margin:14px 2px 8px;text-transform:uppercase;letter-spacing:.08em}table{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:8px}td,th{padding:5px 3px;text-align:left;border-top:1px solid var(--line);vertical-align:top}th{color:var(--mut);font-weight:600}tr.tr td{opacity:.5}
+#q{width:100%;padding:12px 14px;margin-bottom:10px;border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);font:inherit}#q::placeholder{color:var(--mut)}
+.el{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.m u{text-decoration:none;color:var(--sail);font-weight:700}
+.gh{font-size:12px;font-weight:800;color:var(--mut);margin:14px 2px 8px;text-transform:uppercase;letter-spacing:.06em}.gh.bad{color:var(--bad)}
+.sc{margin-top:10px;padding:10px;border-radius:14px;background:rgba(255,255,255,.05)}.sc.tr{opacity:.5}.sh{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.sh b{font-size:13.5px}.sh em{font-style:normal;font-size:11px;color:var(--mut);margin-left:auto}.cr{font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:999px;background:rgba(255,106,43,.18);color:var(--soon)}
 .e{text-align:center;color:var(--mut);padding:30px 0}
 </style>
 </head>
@@ -55,6 +59,7 @@ details{background:var(--card);border:1px solid var(--line);border-radius:16px;p
 <header><div class="hl"><img src="icons/ship-192.png" alt=""><div><h1>Ship Monitor</h1><div class="tg">Pantau kapal &amp; SO Sulawesi</div></div></div><div class="rt"><span id="sync"></span><button id="rf">↻</button></div></header>
 <div class="sg" id="mode"><button data-m="m" class="on">Monitor</button><button data-m="j">Jadwal Kapal</button></div>
 <div id="mon"><div class="kpi" id="kpi"></div>
+<input id="q" type="search" placeholder="Cari no SO, kapal, atau customer…" autocomplete="off">
 <select id="site"></select>
 <div id="list"><div class="e">Memuat…</div></div></div>
 <div id="jad" style="display:none"></div>
@@ -71,19 +76,26 @@ function fd(s){if(!s)return'—';var d=day(s);return HR[d.getDay()]+' '+d.getDat
 function sites(s){var a=[];(s.lines||[]).forEach(function(l){if(l.site&&a.indexOf(l.site)<0)a.push(l.site)});if(!a.length&&s.destinations)a=s.destinations.split(',').map(function(x){return x.trim()}).filter(Boolean);return a}
 function kind(s){if(arrived(s))return'done';if(!s.eta)return'sail';var n=dd(s);return n<0?'late':n<=3?'soon':'sail'}
 function label(s,k){if(k==='done')return'Sampai';if(!s.eta)return'';var n=dd(s);return n<0?'Telat '+(-n)+'h':n===0?'Hari ini':'H-'+n}
+function card(s,open){var k=kind(s),L=s.lines||[],n=L.length,st=sites(s),x=L[0]||{},qq=$('q').value.trim().toLowerCase();
+  var o=open||(qq&&L.some(function(l){return String(l.soNo||'').toLowerCase().indexOf(qq)>=0}));
+  return'<div class="c '+k+(o?' open':'')+'"><div class="t"><span>'+esc(s.vessel)+'</span><span class="d">'+label(s,k)+'</span></div>'
+  +'<div class="m el">📍 '+esc(st[0]||'-')+(st.length>1?' <u>+'+(st.length-1)+' tujuan</u>':'')+'</div>'
+  +(x.shippingLine?'<div class="m">🚚 '+esc(x.shippingLine)+(n?' · '+n+' SO':'')+'</div>':'')
+  +'<div class="dt"><span><i>Closing</i>'+fd(s.closing)+'</span><span><i>ETD</i>'+fd(s.etd)+'</span><span><i>ETA</i>'+fd(s.eta)+'</span></div>'+(n?'<div class="m">▾ No SO ('+n+')</div><div class="so">'+soHtml(L)+'</div>':'')+'</div>'}
+function hit(s,qq){var h=[s.vessel,s.destinations].concat((s.lines||[]).map(function(l){return[l.soNo,l.site,l.containerNo,l.container].join(' ')})).join(' ').toLowerCase();return h.indexOf(qq)>=0}
 function render(){
-  var q=$('site').value,w=today().getTime()-7*864e5;
+  var q=$('site').value,qq=$('q').value.trim().toLowerCase(),w=today().getTime()-7*864e5;
   var all=data.filter(function(s){return !q||sites(s).indexOf(q)>=0});
   var c={sail:0,soon:0,done:0};
   all.forEach(function(s){var k=kind(s);if(k==='done'){if(!s.eta||day(s.eta)>=w)c.done++}else{c.sail++;if(k==='soon')c.soon++}});
-  $('kpi').innerHTML=[['sail','Berlayar',c.sail],['soon','Tiba ≤3 hari',c.soon],['done','Sampai 7h',c.done]].map(function(x){return'<button data-t="'+x[0]+'" class="'+(tab===x[0]?'on':'')+'"><b>'+x[2]+'</b><small>'+x[1]+'</small></button>'}).join('');
-  var l=all.filter(function(s){var k=kind(s);return tab==='done'?k==='done'&&(!s.eta||day(s.eta)>=w):tab==='soon'?k==='soon'||k==='late':k!=='done'});
-  l.sort(function(a,b){return(a.eta||'9999')<(b.eta||'9999')?(tab==='done'?1:-1):(tab==='done'?-1:1)});
-  $('list').innerHTML=l.length?l.map(function(s){var k=kind(s),n=(s.lines||[]).length,st=sites(s),x=(s.lines||[])[0]||{};
-    return'<div class="c '+k+'"><div class="t"><span>'+esc(s.vessel)+'</span><span class="d">'+label(s,k)+'</span></div>'
-    +'<div class="m">📍 '+esc(st.join(', '))+'</div>'
-    +(x.shippingLine?'<div class="m">🚚 '+esc(x.shippingLine)+(n?' · '+n+' SO':'')+'</div>':'')
-    +'<div class="dt"><span><i>Closing</i>'+fd(s.closing)+'</span><span><i>ETD</i>'+fd(s.etd)+'</span><span><i>ETA</i>'+fd(s.eta)+'</span></div>'+(n?'<div class="m">▾ Lihat no SO ('+n+')</div><div class="so">'+soHtml(s.lines)+'</div>':'')+'</div>'}).join(''):'<div class="e">Tidak ada kapal</div>';
+  $('kpi').innerHTML=[['sail','Berlayar',c.sail],['soon','Tiba ≤3 hari',c.soon],['done','Sampai 7h',c.done]].map(function(x){return'<button data-t="'+x[0]+'" class="'+(!qq&&tab===x[0]?'on':'')+'"><b>'+x[2]+'</b><small>'+x[1]+'</small></button>'}).join('');
+  var asc=function(a,b){return(a.eta||'9999')<(b.eta||'9999')?-1:1},out='';
+  if(qq){var r=all.filter(function(s){return hit(s,qq)}).sort(asc);out='<div class="gh">Hasil cari ('+r.length+')</div>'+r.map(function(s){return card(s)}).join('')}
+  else if(tab==='done'){var d=all.filter(function(s){return kind(s)==='done'&&(!s.eta||day(s.eta)>=w)}).sort(function(a,b){return asc(b,a)});out=d.map(function(s){return card(s)}).join('')}
+  else if(tab==='soon'){out=all.filter(function(s){var k=kind(s);return k==='soon'||k==='late'}).sort(asc).map(function(s){return card(s)}).join('')}
+  else{var lt=all.filter(function(s){return kind(s)==='late'}).sort(asc),sl=all.filter(function(s){var k=kind(s);return k==='sail'||k==='soon'}).sort(asc);
+    out=(lt.length?'<div class="gh bad">⚠ Perlu dicek — ETA lewat, belum ditandai sampai ('+lt.length+')</div>'+lt.map(function(s){return card(s)}).join(''):'')+(sl.length?'<div class="gh">Berlayar ('+sl.length+')</div>'+sl.map(function(s){return card(s)}).join(''):'')}
+  $('list').innerHTML=out||'<div class="e">Tidak ada kapal</div>';
 }
 var MN={jan:0,feb:1,mar:2,apr:3,mei:4,may:4,jun:5,jul:6,agu:7,aug:7,sep:8,okt:9,oct:9,nov:10,des:11,dec:11};
 function wd(t){var m=/^(\d{1,2}) ([A-Za-z]{3})[a-z]*(?: (\d{4}))?/.exec(t);if(!m)return t;var mo=MN[m[2].toLowerCase()];if(mo==null)return t;var y=m[3]?+m[3]:new Date().getFullYear(),d=new Date(y,mo,+m[1]);return HR[d.getDay()]+' '+t}
@@ -103,14 +115,14 @@ function load(){
   }).catch(function(){$('sync').textContent='offline'})
 }
 var JK='shipSched',jl=0;
-function jrender(md){var o='',cur=null,rows=[];function flush(){if(!cur)return;var t='';if(rows.length>1){var b=rows.slice(1).sort(function(a,c){return(a[4]==='Direct'?0:1)-(c[4]==='Direct'?0:1)});t='<table><tr>'+['Carrier','Kapal','ETD','ETA','Tipe'].map(function(x){return'<th>'+x+'</th>'}).join('')+'</tr>'+b.map(function(r){return'<tr class="'+(r[4]==='Direct'?'':'tr')+'">'+r.slice(0,5).map(function(x,i){return'<td>'+esc(i===2||i===3?wd(x):x)+'</td>'}).join('')+'</tr>'}).join('')+'</table>'}o+='<details><summary>'+esc(cur.t)+'<small>'+esc(cur.n)+'</small></summary>'+t+'</details>';cur=null;rows=[]}
+function jrender(md){var o='',cur=null,rows=[];function flush(){if(!cur)return;var t='';if(rows.length>1){var b=rows.slice(1).sort(function(a,c){return(a[4]==='Direct'?0:1)-(c[4]==='Direct'?0:1)});t=b.map(function(r){var di=r[4]==='Direct';return'<div class="sc'+(di?'':' tr')+'"><div class="sh"><b>'+esc(r[1])+'</b><span class="cr">'+esc(r[0])+'</span><em>'+esc(r[4]||'')+'</em></div><div class="dt"><span><i>ETD</i>'+esc(wd(r[2]))+'</span><span><i>ETA</i>'+esc(wd(r[3]))+'</span></div></div>'}).join('')}o+='<details><summary>'+esc(cur.t)+'<small>'+esc(cur.n)+'</small></summary>'+t+'</details>';cur=null;rows=[]}
  String(md).split('\n').forEach(function(r){r=r.trim();if(r.indexOf('|')===0){var c=r.replace(/^\||\|$/g,'').split('|').map(function(x){return x.trim()});if(!/^:?-{2,}/.test(c[0]))rows.push(c)}else if(r.indexOf('### ')===0){flush();cur={t:r.slice(4),n:''}}else if(r.indexOf('## ')===0){flush();o+='<div class="og">'+esc(r.slice(3))+'</div>'}else if(r&&cur&&r.charAt(0)!=='_'&&!cur.n)cur.n=r.replace(/\*\*/g,'');else if(r.charAt(0)==='_'&&r.length>3)jl=r.replace(/_/g,'')});flush();
  $('jad').innerHTML=o+(jl?'<div class="m" style="margin-top:10px">'+esc(jl)+'</div>':'')||'<div class="e">Belum ada jadwal</div>'}
 function jload(){try{var c=localStorage.getItem(JK);if(c)jrender(c)}catch(e){}fetch(DB.replace('shipments','schedreport/latest/md')).then(function(r){return r.json()}).then(function(m){if(m){jrender(m);try{localStorage.setItem(JK,m)}catch(e){}}}).catch(function(){})}
 $('mode').onclick=function(e){var b=e.target.closest('button');if(!b)return;var j=b.dataset.m==='j';[].forEach.call(this.children,function(x){x.className=x===b?'on':''});$('mon').style.display=j?'none':'';$('jad').style.display=j?'':'none';if(j)jload()};
 $('list').onclick=function(e){var c=e.target.closest('.c');if(c)c.classList.toggle('open')};
 $('kpi').onclick=function(e){var b=e.target.closest('button');if(b){tab=b.dataset.t;render()}};
-$('site').onchange=render;$('rf').onclick=load;
+$('site').onchange=render;$('q').oninput=render;$('rf').onclick=load;
 document.addEventListener('visibilitychange',function(){if(!document.hidden)load()});
 try{var c=JSON.parse(localStorage.getItem(K));if(c)set(c)}catch(e){}
 load();
