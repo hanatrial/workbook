@@ -104,6 +104,7 @@ $('site').onchange=render;$('rf').onclick=load;
 document.addEventListener('visibilitychange',function(){if(!document.hidden)load()});
 try{var c=JSON.parse(localStorage.getItem(K));if(c)set(c)}catch(e){}
 load();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('monitor-sw.js',{scope:'./monitor.html'}).catch(function(){});
 </script>
 </body>
 </html>
