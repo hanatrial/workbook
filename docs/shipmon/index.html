@@ -59,7 +59,8 @@ function day(s){return s?new Date(s+'T00:00:00'):null}
 function today(){var d=new Date();d.setHours(0,0,0,0);return d}
 function arrived(s){if(s.status==='Sudah Sampai')return true;if(s.status==='Belum Sampai')return false;var e=day(s.eta);return !!e&&e<=today()}
 function dd(s){return Math.round((day(s.eta)-today())/864e5)}
-function fd(s){if(!s)return'—';var d=day(s);return d.getDate()+' '+['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][d.getMonth()]}
+var HR=['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+function fd(s){if(!s)return'—';var d=day(s);return HR[d.getDay()]+' '+d.getDate()+' '+['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][d.getMonth()]}
 function sites(s){var a=[];(s.lines||[]).forEach(function(l){if(l.site&&a.indexOf(l.site)<0)a.push(l.site)});if(!a.length&&s.destinations)a=s.destinations.split(',').map(function(x){return x.trim()}).filter(Boolean);return a}
 function kind(s){if(arrived(s))return'done';if(!s.eta)return'sail';var n=dd(s);return n<0?'late':n<=3?'soon':'sail'}
 function label(s,k){if(k==='done')return'Sampai';if(!s.eta)return'';var n=dd(s);return n<0?'Telat '+(-n)+'h':n===0?'Hari ini':'H-'+n}
@@ -77,6 +78,8 @@ function render(){
     +(x.shippingLine?'<div class="m">🚚 '+esc(x.shippingLine)+(n?' · '+n+' SO':'')+'</div>':'')
     +'<div class="dt"><span><i>Closing</i>'+fd(s.closing)+'</span><span><i>ETD</i>'+fd(s.etd)+'</span><span><i>ETA</i>'+fd(s.eta)+'</span></div>'+(n?'<div class="m">▾ Lihat no SO ('+n+')</div><div class="so">'+soHtml(s.lines)+'</div>':'')+'</div>'}).join(''):'<div class="e">Tidak ada kapal</div>';
 }
+var MN={jan:0,feb:1,mar:2,apr:3,mei:4,may:4,jun:5,jul:6,agu:7,aug:7,sep:8,okt:9,oct:9,nov:10,des:11,dec:11};
+function wd(t){var m=/^(\d{1,2}) ([A-Za-z]{3})[a-z]*(?: (\d{4}))?/.exec(t);if(!m)return t;var mo=MN[m[2].toLowerCase()];if(mo==null)return t;var y=m[3]?+m[3]:new Date().getFullYear(),d=new Date(y,mo,+m[1]);return HR[d.getDay()]+' '+t}
 function soHtml(L){var g={},o=[];L.forEach(function(l){var k=l.site||'-';(g[k]=g[k]||[]).push(l)});for(var k in g)o.push('<b>'+esc(k)+'</b>'+g[k].map(function(l){return'<div><span>'+esc(l.soNo||'-')+'</span><span>'+esc(l.containerSize||'')+(l.arrived?' <s>✓</s>':'')+'</span></div>'}).join(''));return o.join('')}
 function fill(){
   var set={};data.forEach(function(s){sites(s).forEach(function(x){set[x]=1})});
@@ -93,7 +96,7 @@ function load(){
   }).catch(function(){$('sync').textContent='offline'})
 }
 var JK='shipSched',jl=0;
-function jrender(md){var o='',cur=null,rows=[];function flush(){if(!cur)return;var t='';if(rows.length>1){var b=rows.slice(1).sort(function(a,c){return(a[4]==='Direct'?0:1)-(c[4]==='Direct'?0:1)});t='<table><tr>'+['Carrier','Kapal','ETD','ETA','Tipe'].map(function(x){return'<th>'+x+'</th>'}).join('')+'</tr>'+b.map(function(r){return'<tr class="'+(r[4]==='Direct'?'':'tr')+'">'+r.slice(0,5).map(function(x){return'<td>'+esc(x)+'</td>'}).join('')+'</tr>'}).join('')+'</table>'}o+='<details><summary>'+esc(cur.t)+'<small>'+esc(cur.n)+'</small></summary>'+t+'</details>';cur=null;rows=[]}
+function jrender(md){var o='',cur=null,rows=[];function flush(){if(!cur)return;var t='';if(rows.length>1){var b=rows.slice(1).sort(function(a,c){return(a[4]==='Direct'?0:1)-(c[4]==='Direct'?0:1)});t='<table><tr>'+['Carrier','Kapal','ETD','ETA','Tipe'].map(function(x){return'<th>'+x+'</th>'}).join('')+'</tr>'+b.map(function(r){return'<tr class="'+(r[4]==='Direct'?'':'tr')+'">'+r.slice(0,5).map(function(x,i){return'<td>'+esc(i===2||i===3?wd(x):x)+'</td>'}).join('')+'</tr>'}).join('')+'</table>'}o+='<details><summary>'+esc(cur.t)+'<small>'+esc(cur.n)+'</small></summary>'+t+'</details>';cur=null;rows=[]}
  String(md).split('\n').forEach(function(r){r=r.trim();if(r.indexOf('|')===0){var c=r.replace(/^\||\|$/g,'').split('|').map(function(x){return x.trim()});if(!/^:?-{2,}/.test(c[0]))rows.push(c)}else if(r.indexOf('### ')===0){flush();cur={t:r.slice(4),n:''}}else if(r.indexOf('## ')===0){flush();o+='<div class="og">'+esc(r.slice(3))+'</div>'}else if(r&&cur&&r.charAt(0)!=='_'&&!cur.n)cur.n=r.replace(/\*\*/g,'');else if(r.charAt(0)==='_'&&r.length>3)jl=r.replace(/_/g,'')});flush();
  $('jad').innerHTML=o+(jl?'<div class="m" style="margin-top:10px">'+esc(jl)+'</div>':'')||'<div class="e">Belum ada jadwal</div>'}
 function jload(){try{var c=localStorage.getItem(JK);if(c)jrender(c)}catch(e){}fetch(DB.replace('shipments','schedreport/latest/md')).then(function(r){return r.json()}).then(function(m){if(m){jrender(m);try{localStorage.setItem(JK,m)}catch(e){}}}).catch(function(){})}
