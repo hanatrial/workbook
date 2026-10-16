@@ -1,8 +1,9 @@
 {
   "name": "Ship Monitor",
   "short_name": "Ship",
-  "start_url": "./monitor.html",
-  "scope": "./monitor.html",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#F3EEE5",
@@ -26,6 +27,5 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ],
-  "id": "./monitor.html"
+  ]
 }
