@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0f766e">
+<meta name="theme-color" content="#07182b">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/ship-192.png">
 <link rel="apple-touch-icon" href="icons/ship-apple-touch.png">
@@ -12,40 +12,47 @@
 <meta name="apple-mobile-web-app-title" content="Ship">
 <title>Ship Monitor</title>
 <style>
-:root{--bg:#f3eee5;--card:#fffdf9;--ink:#221d18;--mut:#6b6055;--line:#e9e2d6;--warn:#f59e0b;--ok:#137a5a;--bad:#c63a47;--brand:#0f766e}
-@media(prefers-color-scheme:dark){:root{--bg:#181512;--card:#221d18;--ink:#f3eee5;--mut:#9c9186;--line:#332c25}}
+:root{--bg:#07182b;--card:rgba(255,255,255,.06);--ink:#eaf2fa;--mut:#8fa9c2;--line:rgba(255,255,255,.1);--sail:#38bdf8;--soon:#ff6a2b;--bad:#ff4d5e;--ok:#34d399;--brand:#ff6a2b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;font:15px/1.4 system-ui,-apple-system,Roboto,sans-serif;background:var(--bg);color:var(--ink);padding:0 14px 40px;max-width:520px;margin:auto}
-header{display:flex;align-items:center;justify-content:space-between;padding:16px 0 8px}
-h1{font-size:20px;margin:0}
+body{margin:0;font:15px/1.4 system-ui,-apple-system,Roboto,sans-serif;background:var(--bg);color:var(--ink);padding:0 14px 40px;max-width:520px;margin:auto;min-height:100vh}
+body:before{content:"";position:fixed;inset:0;z-index:-1;background:radial-gradient(120% 60% at 80% -10%,#0f5a8a 0,transparent 60%),linear-gradient(180deg,#0a2b49 0,#07182b 45%)}
+header{padding:22px 0 14px;position:relative}
+.hl{display:flex;align-items:center;gap:12px}
+.hl img{width:44px;height:44px;border-radius:12px}
+h1{font-size:24px;line-height:1.1;margin:0;letter-spacing:-.3px}
+.tg{color:var(--mut);font-size:12.5px;margin-top:2px}
+.rt{position:absolute;right:0;top:24px;text-align:right}
 #sync{font-size:11px;color:var(--mut)}
 button{font:inherit;border:0;cursor:pointer}
-#rf{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 10px;color:var(--ink)}
-.kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 12px}
-.kpi button{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 4px;color:var(--ink)}
-.kpi b{display:block;font-size:22px}
+#rf{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:5px 10px;color:var(--ink);display:block;margin:4px 0 0 auto}
+.kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:4px 0 12px}
+.kpi button{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 4px;color:var(--ink);backdrop-filter:blur(6px)}
+.kpi b{display:block;font-size:26px;font-weight:800}
 .kpi small{font-size:11px;color:var(--mut)}
-.kpi .on{outline:2px solid var(--brand)}
-select{width:100%;padding:10px;margin-bottom:12px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:inherit}
-.c{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--warn);border-radius:14px;padding:11px 12px;margin-bottom:10px}
-.c.soon{border-left-color:var(--brand)}.c.late{border-left-color:var(--bad)}.c.done{border-left-color:var(--ok);opacity:.75}
-.t{display:flex;justify-content:space-between;gap:8px;font-weight:700}
-.d{font-size:12px;font-weight:700;white-space:nowrap;color:var(--warn)}
-.soon .d{color:var(--brand)}.late .d{color:var(--bad)}.done .d{color:var(--ok)}
-.m{font-size:12.5px;color:var(--mut);margin-top:3px}
-.dt{display:flex;gap:6px;margin-top:8px;font-size:12px}
-.dt span{flex:1;background:rgba(127,127,127,.1);border-radius:8px;padding:5px 8px}
-.dt i{display:block;font-style:normal;font-size:10px;color:var(--mut);text-transform:uppercase}
-.sg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}.sg button{padding:9px;border-radius:12px;background:var(--card);border:1px solid var(--line);color:var(--ink);font-weight:700}.sg .on{background:var(--brand);color:#fff;border-color:var(--brand)}
-.so{display:none;margin-top:8px;border-top:1px dashed var(--line);padding-top:6px;font-size:12px}.c.open .so{display:block}.c{cursor:pointer}
-.so b{display:block;margin-top:6px;font-size:12px}.so div{display:flex;justify-content:space-between;gap:6px;padding:2px 0;font-variant-numeric:tabular-nums}.so s{color:var(--ok);text-decoration:none}
-details{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:8px}summary{font-weight:700;cursor:pointer}summary small{display:block;font-weight:400;color:var(--mut);font-size:12px;margin-top:3px}
-.og{font-size:12px;font-weight:700;color:var(--mut);margin:12px 0 6px;text-transform:uppercase}table{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:8px}td,th{padding:4px 3px;text-align:left;border-top:1px solid var(--line);vertical-align:top}th{color:var(--mut);font-weight:600}tr.tr td{opacity:.55}
+.kpi .on{background:var(--brand);border-color:var(--brand);box-shadow:0 6px 20px rgba(255,106,43,.35)}
+.kpi .on small{color:#fff}
+select{width:100%;padding:12px;margin-bottom:12px;border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);font:inherit}
+select option{color:#000}
+.c{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px;position:relative;overflow:hidden;backdrop-filter:blur(6px)}
+.c:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--sail)}
+.c.soon:before{background:var(--soon)}.c.late:before{background:var(--bad)}.c.done:before{background:var(--ok)}.c.done{opacity:.75}
+.t{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;font-weight:800;font-size:16px}
+.d{font-size:11.5px;font-weight:800;white-space:nowrap;padding:4px 10px;border-radius:999px;background:rgba(56,189,248,.15);color:var(--sail)}
+.soon .d{background:rgba(255,106,43,.18);color:var(--soon)}.late .d{background:rgba(255,77,94,.18);color:var(--bad)}.done .d{background:rgba(52,211,153,.15);color:var(--ok)}
+.m{font-size:12.5px;color:var(--mut);margin-top:4px}
+.dt{display:flex;gap:6px;margin-top:10px;font-size:12.5px;font-weight:700}
+.dt span{flex:1;background:rgba(255,255,255,.06);border-radius:12px;padding:7px 9px}
+.dt i{display:block;font-style:normal;font-size:9.5px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.06em}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:12px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px}.sg button{padding:9px;border-radius:999px;background:none;color:var(--mut);font-weight:700}.sg .on{background:var(--brand);color:#fff}
+.so{display:none;margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;font-size:12.5px}.c.open .so{display:block}.c{cursor:pointer}
+.so b{display:block;margin-top:8px;font-size:12px;color:var(--sail)}.so div{display:flex;justify-content:space-between;gap:6px;padding:3px 0;font-variant-numeric:tabular-nums}.so s{color:var(--ok);text-decoration:none}
+details{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin-bottom:10px}summary{font-weight:800;cursor:pointer}summary small{display:block;font-weight:400;color:var(--mut);font-size:12px;margin-top:3px}
+.og{font-size:12px;font-weight:800;color:var(--soon);margin:14px 2px 8px;text-transform:uppercase;letter-spacing:.08em}table{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:8px}td,th{padding:5px 3px;text-align:left;border-top:1px solid var(--line);vertical-align:top}th{color:var(--mut);font-weight:600}tr.tr td{opacity:.5}
 .e{text-align:center;color:var(--mut);padding:30px 0}
 </style>
 </head>
 <body>
-<header><h1>🚢 Ship Monitor</h1><div><span id="sync"></span> <button id="rf">↻</button></div></header>
+<header><div class="hl"><img src="icons/ship-192.png" alt=""><div><h1>Ship Monitor</h1><div class="tg">Pantau kapal &amp; SO Sulawesi</div></div></div><div class="rt"><span id="sync"></span><button id="rf">↻</button></div></header>
 <div class="sg" id="mode"><button data-m="m" class="on">Monitor</button><button data-m="j">Jadwal Kapal</button></div>
 <div id="mon"><div class="kpi" id="kpi"></div>
 <select id="site"></select>

@@ -6,8 +6,8 @@
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#F3EEE5",
-  "theme_color": "#0f766e",
+  "background_color": "#07182b",
+  "theme_color": "#07182b",
   "icons": [
     {
       "src": "icons/ship-192.png",
