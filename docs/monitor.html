@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0f766e">
+<link rel="manifest" href="monitor.webmanifest">
+<link rel="icon" href="icons/ship-192.png">
+<link rel="apple-touch-icon" href="icons/ship-apple-touch.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Ship">
 <title>Ship Monitor</title>
 <style>
 :root{--bg:#f3eee5;--card:#fffdf9;--ink:#221d18;--mut:#6b6055;--line:#e9e2d6;--warn:#f59e0b;--ok:#137a5a;--bad:#c63a47;--brand:#0f766e}
@@ -30,14 +36,21 @@ select{width:100%;padding:10px;margin-bottom:12px;border:1px solid var(--line);b
 .dt{display:flex;gap:6px;margin-top:8px;font-size:12px}
 .dt span{flex:1;background:rgba(127,127,127,.1);border-radius:8px;padding:5px 8px}
 .dt i{display:block;font-style:normal;font-size:10px;color:var(--mut);text-transform:uppercase}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}.sg button{padding:9px;border-radius:12px;background:var(--card);border:1px solid var(--line);color:var(--ink);font-weight:700}.sg .on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.so{display:none;margin-top:8px;border-top:1px dashed var(--line);padding-top:6px;font-size:12px}.c.open .so{display:block}.c{cursor:pointer}
+.so b{display:block;margin-top:6px;font-size:12px}.so div{display:flex;justify-content:space-between;gap:6px;padding:2px 0;font-variant-numeric:tabular-nums}.so s{color:var(--ok);text-decoration:none}
+details{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:8px}summary{font-weight:700;cursor:pointer}summary small{display:block;font-weight:400;color:var(--mut);font-size:12px;margin-top:3px}
+.og{font-size:12px;font-weight:700;color:var(--mut);margin:12px 0 6px;text-transform:uppercase}table{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:8px}td,th{padding:4px 3px;text-align:left;border-top:1px solid var(--line);vertical-align:top}th{color:var(--mut);font-weight:600}tr.tr td{opacity:.55}
 .e{text-align:center;color:var(--mut);padding:30px 0}
 </style>
 </head>
 <body>
 <header><h1>🚢 Ship Monitor</h1><div><span id="sync"></span> <button id="rf">↻</button></div></header>
-<div class="kpi" id="kpi"></div>
+<div class="sg" id="mode"><button data-m="m" class="on">Monitor</button><button data-m="j">Jadwal Kapal</button></div>
+<div id="mon"><div class="kpi" id="kpi"></div>
 <select id="site"></select>
-<div id="list"><div class="e">Memuat…</div></div>
+<div id="list"><div class="e">Memuat…</div></div></div>
+<div id="jad" style="display:none"></div>
 <script>
 var DB='https://workbook-ks-default-rtdb.asia-southeast1.firebasedatabase.app/shipments.json',K='shipMonitor',tab='sail',data=[];
 var $=function(i){return document.getElementById(i)};
@@ -62,8 +75,9 @@ function render(){
     return'<div class="c '+k+'"><div class="t"><span>'+esc(s.vessel)+'</span><span class="d">'+label(s,k)+'</span></div>'
     +'<div class="m">📍 '+esc(st.join(', '))+'</div>'
     +(x.shippingLine?'<div class="m">🚚 '+esc(x.shippingLine)+(n?' · '+n+' SO':'')+'</div>':'')
-    +'<div class="dt"><span><i>Closing</i>'+fd(s.closing)+'</span><span><i>ETD</i>'+fd(s.etd)+'</span><span><i>ETA</i>'+fd(s.eta)+'</span></div></div>'}).join(''):'<div class="e">Tidak ada kapal</div>';
+    +'<div class="dt"><span><i>Closing</i>'+fd(s.closing)+'</span><span><i>ETD</i>'+fd(s.etd)+'</span><span><i>ETA</i>'+fd(s.eta)+'</span></div>'+(n?'<div class="m">▾ Lihat no SO ('+n+')</div><div class="so">'+soHtml(s.lines)+'</div>':'')+'</div>'}).join(''):'<div class="e">Tidak ada kapal</div>';
 }
+function soHtml(L){var g={},o=[];L.forEach(function(l){var k=l.site||'-';(g[k]=g[k]||[]).push(l)});for(var k in g)o.push('<b>'+esc(k)+'</b>'+g[k].map(function(l){return'<div><span>'+esc(l.soNo||'-')+'</span><span>'+esc(l.containerSize||'')+(l.arrived?' <s>✓</s>':'')+'</span></div>'}).join(''));return o.join('')}
 function fill(){
   var set={};data.forEach(function(s){sites(s).forEach(function(x){set[x]=1})});
   var cur=$('site').value;
@@ -78,6 +92,13 @@ function load(){
     set(o);var d=new Date();$('sync').textContent=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)
   }).catch(function(){$('sync').textContent='offline'})
 }
+var JK='shipSched',jl=0;
+function jrender(md){var o='',cur=null,rows=[];function flush(){if(!cur)return;var t='';if(rows.length>1){var b=rows.slice(1).sort(function(a,c){return(a[4]==='Direct'?0:1)-(c[4]==='Direct'?0:1)});t='<table><tr>'+['Carrier','Kapal','ETD','ETA','Tipe'].map(function(x){return'<th>'+x+'</th>'}).join('')+'</tr>'+b.map(function(r){return'<tr class="'+(r[4]==='Direct'?'':'tr')+'">'+r.slice(0,5).map(function(x){return'<td>'+esc(x)+'</td>'}).join('')+'</tr>'}).join('')+'</table>'}o+='<details><summary>'+esc(cur.t)+'<small>'+esc(cur.n)+'</small></summary>'+t+'</details>';cur=null;rows=[]}
+ String(md).split('\n').forEach(function(r){r=r.trim();if(r.indexOf('|')===0){var c=r.replace(/^\||\|$/g,'').split('|').map(function(x){return x.trim()});if(!/^:?-{2,}/.test(c[0]))rows.push(c)}else if(r.indexOf('### ')===0){flush();cur={t:r.slice(4),n:''}}else if(r.indexOf('## ')===0){flush();o+='<div class="og">'+esc(r.slice(3))+'</div>'}else if(r&&cur&&r.charAt(0)!=='_'&&!cur.n)cur.n=r.replace(/\*\*/g,'');else if(r.charAt(0)==='_'&&r.length>3)jl=r.replace(/_/g,'')});flush();
+ $('jad').innerHTML=o+(jl?'<div class="m" style="margin-top:10px">'+esc(jl)+'</div>':'')||'<div class="e">Belum ada jadwal</div>'}
+function jload(){try{var c=localStorage.getItem(JK);if(c)jrender(c)}catch(e){}fetch(DB.replace('shipments','schedreport/latest/md')).then(function(r){return r.json()}).then(function(m){if(m){jrender(m);try{localStorage.setItem(JK,m)}catch(e){}}}).catch(function(){})}
+$('mode').onclick=function(e){var b=e.target.closest('button');if(!b)return;var j=b.dataset.m==='j';[].forEach.call(this.children,function(x){x.className=x===b?'on':''});$('mon').style.display=j?'none':'';$('jad').style.display=j?'':'none';if(j)jload()};
+$('list').onclick=function(e){var c=e.target.closest('.c');if(c)c.classList.toggle('open')};
 $('kpi').onclick=function(e){var b=e.target.closest('button');if(b){tab=b.dataset.t;render()}};
 $('site').onchange=render;$('rf').onclick=load;
 document.addEventListener('visibilitychange',function(){if(!document.hidden)load()});
