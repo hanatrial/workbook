@@ -43,7 +43,7 @@ select option{color:#000}
 .dt{display:flex;gap:6px;margin-top:10px;font-size:12.5px;font-weight:700}
 .dt span{flex:1;background:rgba(255,255,255,.06);border-radius:12px;padding:7px 9px}
 .dt i{display:block;font-style:normal;font-size:9.5px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.06em}
-.sg{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:12px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px}.sg button{padding:9px;border-radius:999px;background:none;color:var(--mut);font-weight:700}.sg .on{background:var(--brand);color:#fff}
+.sg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:12px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px}.sg button{padding:9px;border-radius:999px;background:none;color:var(--mut);font-weight:700;font-size:13.5px;white-space:nowrap}.sg .on{background:var(--brand);color:#fff}
 .so{display:none;margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;font-size:12.5px}.c.open .so{display:block}.c{cursor:pointer}
 .so>b{display:block;margin-top:8px;font-size:12px;color:var(--sail)}.so .sr{display:flex;justify-content:space-between;gap:6px;padding:3px 0;font-variant-numeric:tabular-nums}.so s{color:var(--ok);text-decoration:none}
 .sr{cursor:pointer}.sr .ar{font-style:normal;color:var(--mut);margin-left:4px}
@@ -56,9 +56,21 @@ select option{color:#000}
 .it em{font-style:normal;font-size:11px;color:var(--ink);white-space:nowrap;text-align:right}
 .it small{display:block;font-size:9.5px;color:var(--mut);margin-top:2px}
 .it small.ok{color:var(--ok)}.it small.part{color:var(--soon)}
+.ic{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px}
+.ic .t{display:flex;justify-content:space-between;gap:8px;font-weight:800;font-size:14px}
+.ic .t .d{font-size:11px;font-weight:700;color:var(--sail);background:rgba(56,189,248,.15);padding:3px 9px;border-radius:999px;white-space:nowrap}
+.ic .n{font-size:11.5px;color:var(--mut);margin-top:3px}
+.ic .r{margin-top:8px;border-top:1px solid var(--line);padding-top:6px}
+.ir{display:flex;gap:8px;padding:5px 0;border-top:1px solid var(--line);align-items:flex-start;font-size:11.5px}
+.ir:first-child{border-top:0;padding-top:0}
+.ir b{color:var(--sail);font-size:11px;flex:0 0 40%;line-height:1.25}
+.ir span{flex:1;color:var(--ink);line-height:1.25}
+.ir span u{text-decoration:none;color:var(--mut);display:block;font-size:10.5px;margin-top:2px}
+.ir em{font-style:normal;color:var(--ink);white-space:nowrap}
+.ir small{display:block;color:var(--mut);font-size:9.5px;margin-top:2px}
 details{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin-bottom:10px}summary{font-weight:800;cursor:pointer}summary small{display:block;font-weight:400;color:var(--mut);font-size:12px;margin-top:3px}
 .og{font-size:12px;font-weight:800;color:var(--soon);margin:14px 2px 8px;text-transform:uppercase;letter-spacing:.08em}table{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:8px}td,th{padding:5px 3px;text-align:left;border-top:1px solid var(--line);vertical-align:top}th{color:var(--mut);font-weight:600}tr.tr td{opacity:.5}
-#q{width:100%;padding:12px 14px;margin-bottom:10px;border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);font:inherit}#q::placeholder{color:var(--mut)}
+#q,#iq{width:100%;padding:12px 14px;margin-bottom:10px;border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);font:inherit}#q::placeholder,#iq::placeholder{color:var(--mut)}
 .el{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.m u{text-decoration:none;color:var(--sail);font-weight:700}
 .gh{font-size:12px;font-weight:800;color:var(--mut);margin:14px 2px 8px;text-transform:uppercase;letter-spacing:.06em}.gh.bad{color:var(--bad)}
 .sc{margin-top:10px;padding:10px;border-radius:14px;background:rgba(255,255,255,.05)}.sc.tr{opacity:.5}.sh{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.sh b{font-size:13.5px}.sh em{font-style:normal;font-size:11px;color:var(--mut);margin-left:auto}.cr{font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:999px;background:rgba(255,106,43,.18);color:var(--soon)}
@@ -67,12 +79,13 @@ details{background:var(--card);border:1px solid var(--line);border-radius:16px;p
 </head>
 <body>
 <header><div class="hl"><img src="icons/ship-192.png" alt=""><div><h1>Ship Monitor</h1><div class="tg">Pantau kapal &amp; SO Sulawesi</div></div></div><div class="rt"><span id="sync"></span><button id="rf">↻</button></div></header>
-<div class="sg" id="mode"><button data-m="m" class="on">Monitor</button><button data-m="j">Jadwal Kapal</button></div>
+<div class="sg" id="mode"><button data-m="m" class="on">Monitor</button><button data-m="j">Jadwal Kapal</button><button data-m="i">Item</button></div>
 <div id="mon"><div class="kpi" id="kpi"></div>
 <input id="q" type="search" placeholder="Cari no SO, kapal, atau customer…" autocomplete="off">
 <select id="site"></select>
 <div id="list"><div class="e">Memuat…</div></div></div>
 <div id="jad" style="display:none"></div>
+<div id="itm" style="display:none"><input id="iq" type="search" placeholder="Cari item, kapal, SO, atau distributor…" autocomplete="off"><select id="isite"></select><div id="ilist"><div class="e">Memuat item…</div></div></div>
 <script>
 var DB='https://workbook-ks-default-rtdb.asia-southeast1.firebasedatabase.app/shipments.json',K='shipMonitor',tab='sail',data=[];
 var ROOT=DB.replace('/shipments.json',''),IT=ROOT+'/soItems';
@@ -113,6 +126,15 @@ function wd(t){var m=/^(\d{1,2}) ([A-Za-z]{3})[a-z]*(?: (\d{4}))?/.exec(t);if(!m
 function soHtml(L){var g={},o=[];L.forEach(function(l){var k=l.site||'-';(g[k]=g[k]||[]).push(l)});for(var k in g)o.push('<b>'+esc(k)+'</b>'+g[k].map(function(l){return'<div class="sr" data-so="'+esc(l.soNo||'')+'"><span>'+esc(l.soNo||'-')+'</span><span>'+esc(l.containerSize||'')+(l.arrived?' <s>✓</s>':'')+' <i class="ar">›</i></span></div>'}).join(''));return o.join('')}
 function itemHtml(o){if(!o||!o.items||!o.items.length)return'<div class="ld">Tidak ada item di portal.</div>';var h='<div class="ld">'+o.items.length+' item'+(o.cmo?' · '+esc(o.cmo):'')+(o.dates&&o.dates.estimate?' · est. sampai '+esc(o.dates.estimate):'')+'</div>';o.items.forEach(function(it){var st=it.itemStatus||it.status||'';h+='<div class="it"><b>'+esc(it.code||'-')+'</b><span>'+esc(it.name||'')+'<small class="'+(/penuh/i.test(st)?'ok':'part')+'">'+esc(st)+'</small></span><em>'+esc(it.qty)+' '+esc(it.uom||'')+'</em></div>'});return h}
 function toggleItems(row){var so=row.getAttribute('data-so');if(!so)return;var nx=row.nextElementSibling;if(nx&&nx.className==='its'){nx.remove();return}var box=document.createElement('div');box.className='its';box.innerHTML='<div class="ld">Memuat item…</div>';row.parentNode.insertBefore(box,row.nextSibling);var key='soItem:'+so;try{var c=JSON.parse(localStorage.getItem(key));if(c&&c.items&&Date.now()-(c.fetchedAt||0)<216e5){box.innerHTML=itemHtml(c);return}}catch(e){}fetch(IT+'/'+so+'.json').then(function(r){return r.json()}).then(function(o){if(!o||!o.items){box.innerHTML='<div class="ld">Detail item belum ada di portal.</div>';return}try{localStorage.setItem(key,JSON.stringify(o))}catch(e){}box.innerHTML=itemHtml(o)}).catch(function(){box.innerHTML='<div class="ld">Gagal memuat item.</div>'})}
+var IK='soItemAll',iData=null,iIndex=null;
+function ibuild(o){var m={};Object.keys(o||{}).forEach(function(so){var s=o[so];(s.items||[]).forEach(function(it){var k=it.code||it.name;if(!k)return;var g=m[k]=m[k]||{code:it.code||'',name:it.name||'',qty:0,rows:[]};if(it.name)g.name=it.name;g.rows.push({vessel:s.vessel||'-',site:s.site||'-',so:so,eta:s.eta||'',qty:it.qty||0,uom:it.uom||'',st:it.itemStatus||it.status||''});g.qty+=it.qty||0})});return Object.keys(m).map(function(k){return m[k]})}
+function isitefill(){var set={};iIndex.forEach(function(g){g.rows.forEach(function(r){set[r.site]=1})});var cur=$('isite').value;$('isite').innerHTML='<option value="">Semua distributor</option>'+Object.keys(set).sort().map(function(x){return'<option>'+esc(x)+'</option>'}).join('');$('isite').value=cur}
+function iload(force){var c=null;try{c=JSON.parse(localStorage.getItem(IK))}catch(e){}if(c&&c.data&&!force&&Date.now()-(c.at||0)<216e5){iData=c.data;iIndex=ibuild(iData);isitefill();irender();return}if(!c||!c.data)$('ilist').innerHTML='<div class="e">Memuat item…</div>';fetch(ROOT+'/soItems.json').then(function(r){return r.json()}).then(function(o){iData=o||{};iIndex=ibuild(iData);isitefill();try{localStorage.setItem(IK,JSON.stringify({at:Date.now(),data:iData}))}catch(e){}irender()}).catch(function(){if(c&&c.data){iData=c.data;iIndex=ibuild(iData);isitefill();irender()}else $('ilist').innerHTML='<div class="e">Gagal memuat item</div>'})}
+function isum(rows){var s=0;rows.forEach(function(r){s+=r.qty||0});return s}
+function norm(s){return String(s==null?'':s).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
+function iloc(rows){var m={};rows.forEach(function(r){var k=r.vessel+'|'+r.site;var x=m[k]=m[k]||{vessel:r.vessel,site:r.site,so:[],qty:0,uom:r.uom,eta:r.eta,st:''};if(x.so.indexOf(r.so)<0)x.so.push(r.so);x.qty+=r.qty||0;if(r.st&&r.st!=='Terealisasi Penuh')x.st=r.st;if(!x.eta||(r.eta&&r.eta<x.eta))x.eta=r.eta});return Object.keys(m).map(function(k){return m[k]}).sort(function(a,b){return a.vessel.localeCompare(b.vessel)||a.site.localeCompare(b.site)})}
+function icard(g,rows){var loc=iloc(rows),sos={},h='<div class="ic"><div class="t"><span>'+esc(g.code||'-')+'</span><span class="d">';rows.forEach(function(r){sos[r.so]=1});h+=Object.keys(sos).length+' SO</span></div><div class="n">'+esc(g.name)+'</div><div class="r">';loc.forEach(function(l){h+='<div class="ir"><b>'+esc(l.vessel)+'</b><span>'+esc(l.site)+'<u>'+l.so.slice(0,3).map(function(x){return esc(x)}).join(' · ')+(l.so.length>3?' +'+(l.so.length-3):'')+'</u><small>'+esc(fd(l.eta))+(l.st&&l.st!=='Terealisasi Penuh'?' · '+esc(l.st):'')+'</small></span><em>'+esc(l.qty)+' '+esc(l.uom)+'</em></div>'});return h+'</div></div>'}
+function irender(){if(!iIndex){$('ilist').innerHTML='<div class="e">Memuat item…</div>';return}var q=norm($('iq').value),site=$('isite').value,out=[];iIndex.forEach(function(g){var hit=norm(g.code+' '+g.name).indexOf(q)>=0;var rr=g.rows.filter(function(r){if(site&&r.site!==site)return false;if(q.length<2||hit)return true;return norm(r.vessel+' '+r.site+' '+r.so).indexOf(q)>=0});if(rr.length)out.push({g:g,rows:rr})});out.sort(function(a,b){return isum(b.rows)-isum(a.rows)});var head='',total=out.length;if(q.length<2&&!site){head='<div class="gh">Item terbanyak</div>';out=out.slice(0,8)}else{head=total?'<div class="gh">'+total+' item'+(site?' · '+esc(site):'')+(total>20?' · 20 ditampilkan':'')+'</div>':'';out=out.slice(0,20)}$('ilist').innerHTML=out.length?(head+out.map(function(x){return icard(x.g,x.rows)}).join('')):'<div class="e">Tidak ada item</div>'}
 function fill(){
   var set={};data.forEach(function(s){sites(s).forEach(function(x){set[x]=1})});
   var cur=$('site').value;
@@ -132,10 +154,11 @@ function jrender(md){var o='',cur=null,rows=[];function flush(){if(!cur)return;v
  String(md).split('\n').forEach(function(r){r=r.trim();if(r.indexOf('|')===0){var c=r.replace(/^\||\|$/g,'').split('|').map(function(x){return x.trim()});if(!/^:?-{2,}/.test(c[0]))rows.push(c)}else if(r.indexOf('### ')===0){flush();cur={t:r.slice(4),n:''}}else if(r.indexOf('## ')===0){flush();o+='<div class="og">'+esc(r.slice(3))+'</div>'}else if(r&&cur&&r.charAt(0)!=='_'&&!cur.n)cur.n=r.replace(/\*\*/g,'');else if(r.charAt(0)==='_'&&r.length>3)jl=r.replace(/_/g,'')});flush();
  $('jad').innerHTML=o+(jl?'<div class="m" style="margin-top:10px">'+esc(jl)+'</div>':'')||'<div class="e">Belum ada jadwal</div>'}
 function jload(){try{var c=localStorage.getItem(JK);if(c)jrender(c)}catch(e){}fetch(DB.replace('shipments','schedreport/latest/md')).then(function(r){return r.json()}).then(function(m){if(m){jrender(m);try{localStorage.setItem(JK,m)}catch(e){}}}).catch(function(){})}
-$('mode').onclick=function(e){var b=e.target.closest('button');if(!b)return;var j=b.dataset.m==='j';[].forEach.call(this.children,function(x){x.className=x===b?'on':''});$('mon').style.display=j?'none':'';$('jad').style.display=j?'':'none';if(j)jload()};
+$('mode').onclick=function(e){var b=e.target.closest('button');if(!b)return;var m=b.dataset.m;[].forEach.call(this.children,function(x){x.className=x===b?'on':''});$('mon').style.display=m==='m'?'':'none';$('jad').style.display=m==='j'?'':'none';$('itm').style.display=m==='i'?'':'none';if(m==='j')jload();if(m==='i')iload()};
 $('list').onclick=function(e){var r=e.target.closest('.sr');if(r){e.stopPropagation();toggleItems(r);return}var c=e.target.closest('.c');if(c)c.classList.toggle('open')};
 $('kpi').onclick=function(e){var b=e.target.closest('button');if(b){tab=b.dataset.t;render()}};
-$('site').onchange=render;$('q').oninput=render;$('rf').onclick=load;
+$('site').onchange=render;$('q').oninput=render;$('rf').onclick=function(){if($('itm').style.display!=='none')iload(true);else load()};
+$('iq').oninput=irender;$('isite').onchange=irender;
 document.addEventListener('visibilitychange',function(){if(!document.hidden)load()});
 try{var c=JSON.parse(localStorage.getItem(K));if(c)set(c)}catch(e){}
 load();
