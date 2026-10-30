@@ -1441,7 +1441,7 @@ function buildShipmentUpdateText(){
   const upcoming=list.filter(s=>inRange(s,thisWeekStart,thisWeekEnd)).sort((a,b)=> a.eta<b.eta?-1:1);
   const overdue=list.filter(s=>shipmentEtdPassedNotArrived(s)).sort((a,b)=> a.eta<b.eta?-1:1);
   const siteLines=s=>(s.lines&&s.lines.length)
-    ? s.lines.map(l=>`${l.site||'—'} (SO: ${l.soNo||'—'})`).join('\n')
+    ? [...new Set(s.lines.map(l=>l.site||'—'))].join('\n')   // hanya distributor (tanpa nomor SO), tanpa duplikat
     : (s.destinations||'—');
   const SO_PAGE='https://hanatrial.github.io/workbook/so/?v=';
   const shipLine=s=>`${siteLines(s)}\n${s.vessel}, ETA: ${fmtDate(s.eta)}\n🔎 Detail SO & item: ${SO_PAGE}${encodeURIComponent(s.id)}`;
