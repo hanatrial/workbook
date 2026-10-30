@@ -1425,6 +1425,8 @@ function buildShipmentUpdateText(){
   lines.push('');
   lines.push(`⏳ *Tiba minggu ini*`);
   lines.push(upcoming.length?upcoming.map(shipLine).join('\n\n'):'- Tidak ada');
+  lines.push('');
+  lines.push('🔗 Pantau kapal: https://hanatrial.github.io/workbook/shipmon/');
   return lines.join('\n');
 }
 function openShareShipmentUpdate(){

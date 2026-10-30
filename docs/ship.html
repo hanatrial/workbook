@@ -226,6 +226,8 @@ function shareUpdate(){
   lines.push('');
   lines.push(`⏳ *Tiba minggu ini*`);
   lines.push(upcoming.length?upcoming.map(shipLine).join('\n\n'):'- Tidak ada');
+  lines.push('');
+  lines.push('🔗 Pantau kapal: https://hanatrial.github.io/workbook/shipmon/');
   const text=lines.join('\n');
   if(navigator.share){ navigator.share({text}).catch(()=>{}); return; }
   window.open('https://wa.me/?text='+encodeURIComponent(text), '_blank');
