@@ -268,7 +268,7 @@ function shareUpdate(){
   };
   const recent=shipments.filter(s=>inRange(s,lastWeekStart,lastWeekEnd)).sort((a,b)=> a.eta<b.eta?-1:1);
   const upcoming=shipments.filter(s=>inRange(s,thisWeekStart,thisWeekEnd)).sort((a,b)=> a.eta<b.eta?-1:1);
-  const SO_PAGE='https://hanatrial.github.io/workbook/so/?v=';
+  const SO_PAGE='https://ks-workbook.web.app/so/?v=';
   const shipLine=s=>{
     const sites=(s.lines&&s.lines.length)
       ? [...new Set(s.lines.map(l=>l.site||'—'))].join('\n')
