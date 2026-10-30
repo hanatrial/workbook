@@ -42,6 +42,19 @@
   .ship-dates>div{flex:1;background:rgba(34,29,24,.045);border-radius:12px;padding:8px 10px}
   .ship-dates small{display:block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
   .ship-dates b{font-size:13.5px}
+  .so-list{margin-top:12px;border-top:1px solid var(--line)}
+  .so-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+  .so-row:last-child{border-bottom:none}
+  .so-row .site{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .so-row .container{color:var(--muted);font-size:11px;white-space:nowrap}
+  .so-btn{color:var(--brand);font-size:12.5px;font-weight:700;background:none;border:none;padding:2px 0;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .so-item{padding:10px 0;border-bottom:1px solid var(--line)}
+  .so-item:last-child{border-bottom:none}
+  .so-item .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .so-item .nm{font-size:12.5px;margin-top:3px}
+  .so-item .qt{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .so-item .miss{font-size:11.5px;color:var(--danger);margin-top:2px}
+  .pill.mid{background:#eef1f4;color:#425466}
   .link-btn{color:var(--danger);font-size:13px;font-weight:700;background:none;border:none;cursor:pointer}
   .empty{text-align:center;color:var(--muted);padding:30px 10px;font-size:13.5px}
   .sheet-overlay{position:fixed;inset:0;background:rgba(15,23,42,.4);display:flex;align-items:flex-end;justify-content:center;z-index:50}
@@ -120,6 +133,12 @@ function render(){
   if(!list.length){ $('#list').innerHTML = `<div class="empty">No shipments yet. Add the first vessel recap 🚢</div>`; return; }
   $('#list').innerHTML = list.map(s=>{
     const arrived = shipmentArrived(s);
+    const lines = (s.lines||[]).filter(l=>l&&l.soNo);
+    const soList = lines.length ? `<div class="so-list">${lines.map(l=>`<div class="so-row">
+        <span class="site">${esc(l.site||'—')}</span>
+        <button class="so-btn" onclick="openSoDetail('${esc(String(l.soNo)).replace(/'/g,"\\'")}')">SO ${esc(l.soNo)}</button>
+        ${l.containerSize?`<span class="container">${esc(l.containerSize)}</span>`:''}
+      </div>`).join('')}</div>` : '';
     return `<div class="card ship-card ${arrived?'arrived':''}">
       <div style="display:flex;align-items:flex-start;gap:8px">
         <div style="flex:1">
@@ -134,6 +153,7 @@ function render(){
         <div><small>ETD</small><b>${s.etd?fmtDate(s.etd):'—'}</b></div>
         <div><small>ETA</small><b>${s.eta?fmtDate(s.eta):'—'}</b></div>
       </div>
+      ${soList}
       <div style="color:var(--muted);font-size:11px;margin-top:8px">${timeAgo(s.createdAt)}</div>
     </div>`;
   }).join('');
@@ -198,6 +218,35 @@ function deleteShipment(id){
   db.ref('shipments/'+id).remove();
   toast('Shipment deleted');
 }
+function openSoDetail(so){
+  const id=String(so||'').trim(); if(!id) return;
+  const base=String(FIREBASE_CONFIG.databaseURL||'').replace(/\/$/,'');
+  const overlay=document.createElement('div');
+  overlay.className='sheet-overlay';
+  overlay.innerHTML=`<div class="sheet">
+    <h3>SO ${esc(id)}</h3>
+    <div id="soBody"><div style="color:var(--muted);font-size:13px">Memuat item…</div></div>
+    <button class="btn ghost" style="margin-top:14px" onclick="closeSheet()">Tutup</button>
+  </div>`;
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) closeSheet(); });
+  document.body.appendChild(overlay);
+  fetch(`${base}/soItems/${encodeURIComponent(id)}.json`).then(r=>r.json()).then(o=>{
+    const body=$('#soBody'); if(!body) return;
+    const items=(o&&o.items)||[];
+    if(!items.length){ body.innerHTML='<div style="color:var(--muted);font-size:13px">Detail item belum ada di portal untuk SO ini.</div>'; return; }
+    body.innerHTML=items.map(it=>{
+      const st=String(it.itemStatus||it.status||'');
+      const cls=/penuh/i.test(st)?'done':/tidak/i.test(st)?'doing':'mid';
+      const sisa=Number(it.unrealized)>0?`<div class="miss">${Number(it.unrealized)} ${esc(it.uom||'')} tidak terpenuhi</div>`:'';
+      return `<div class="so-item">
+        <div class="top"><b style="font-size:13px">${esc(it.code||'—')}</b><span class="pill ${cls}">${esc(st||'—')}</span></div>
+        <div class="nm">${esc(it.name||'')}</div>
+        <div class="qt">${Number(it.qty)||0} ${esc(it.uom||'')}</div>
+        ${sisa}
+      </div>`;
+    }).join('');
+  }).catch(()=>{ const body=$('#soBody'); if(body) body.innerHTML='<div style="color:var(--muted);font-size:13px">Gagal memuat detail item.</div>'; });
+}
 
 function startOfWeek(d){
   const dt=new Date(d); dt.setHours(0,0,0,0);
@@ -219,8 +268,14 @@ function shareUpdate(){
   };
   const recent=shipments.filter(s=>inRange(s,lastWeekStart,lastWeekEnd)).sort((a,b)=> a.eta<b.eta?-1:1);
   const upcoming=shipments.filter(s=>inRange(s,thisWeekStart,thisWeekEnd)).sort((a,b)=> a.eta<b.eta?-1:1);
-  const shipLine=s=>`${s.destinations||'—'}\n${s.vessel}, ETA: ${fmtDate(s.eta)}`;
-  const lines=[`*Vessel Update — ${new Date().toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}*`, ''];
+  const SO_PAGE='https://hanatrial.github.io/workbook/so/?v=';
+  const shipLine=s=>{
+    const sites=(s.lines&&s.lines.length)
+      ? [...new Set(s.lines.map(l=>l.site||'—'))].join('\n')
+      : (s.destinations||'—');
+    return `${s.vessel}, ETA: ${fmtDate(s.eta)}\n${sites}\n🔎 Detail SO & item: ${SO_PAGE}${encodeURIComponent(s.id)}`;
+  };
+  const lines=[`*Vessel Update — ${new Date().toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}*`, '', '⛔ *Catatan: DILARANG membagikan link di bawah ini ke pihak external.*', ''];
   lines.push(`✅ *Tiba minggu lalu (cek bongkar)*`);
   lines.push(recent.length?recent.map(shipLine).join('\n\n'):'- Tidak ada');
   lines.push('');
