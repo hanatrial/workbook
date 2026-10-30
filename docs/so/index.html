@@ -62,9 +62,6 @@
     </div>
     <span class="badge" id="count" style="display:none"></span>
   </div>
-  <div class="actions" id="actions">
-    <button class="btn" onclick="shareImage()">📷 Simpan / bagikan gambar</button>
-  </div>
   <div id="body"><div class="empty">Memuat data…</div></div>
   <div class="foot">
     Sumber: portal distributor · <a href="https://hanatrial.github.io/workbook/">buka app Keluarga Sultan</a>
@@ -129,73 +126,6 @@ function render(data){
       +(s.hasDetail?s.items.map(itemHtml).join(''):'<div class="it"><div class="qt">Detail item belum ada di portal.</div></div>')
       +'</div>';
   }).join('');
-  $('actions').style.display='flex';
-}
-
-/* ---------- gambar ---------- */
-function wrap(ctx,str,maxW){
-  var words=String(str==null?'':str).split(' '),line='',out=[];
-  words.forEach(function(w){
-    var t=line?line+' '+w:w;
-    if(ctx.measureText(t).width>maxW&&line){out.push(line);line=w}else line=t;
-  });
-  if(line)out.push(line);
-  return out;
-}
-function drawCard(cv,paint){
-  var ctx=cv.getContext('2d'),W=cv.width,P=56,maxW=W-P*2,y=P;
-  function put(lines,size,weight,color,lead,gap){
-    ctx.font=weight+' '+size+'px "Plus Jakarta Sans",system-ui,sans-serif';
-    if(paint){ctx.fillStyle=color;ctx.textBaseline='top';lines.forEach(function(l,i){ctx.fillText(l,P,y+i*size*lead)})}
-    y+=lines.length*size*lead+gap;
-  }
-  function txt(str,size,weight,color,gap,lead){
-    ctx.font=weight+' '+size+'px "Plus Jakarta Sans",system-ui,sans-serif';
-    put(wrap(ctx,str,maxW),size,weight,color,lead||1.38,gap||0);
-  }
-  if(paint){ctx.fillStyle='#F3EEE5';ctx.fillRect(0,0,W,cv.height)}
-  txt('DETAIL SO & ITEM',22,'700','#0B6B5E',6,1.2);
-  y+=10;
-  txt(card.vessel,40,'700','#221D18',4);
-  txt('ETA '+fd(card.eta)+(card.destinations?' · '+card.destinations:''),24,'500','#6B6055',18);
-  if(paint){ctx.fillStyle='rgba(34,29,24,.10)';ctx.fillRect(P,y-8,W-P*2,1)}
-  y+=22;
-  card.sos.forEach(function(s){
-    txt(s.site,28,'700','#221D18',2);
-    txt('SO '+s.so+(s.container?' · '+s.container:''),22,'500','#6B6055',12);
-    if(!s.hasDetail){ txt('Detail item belum ada di portal.',22,'500','#6B6055',16); return }
-    s.items.forEach(function(it){
-      var st=stCls(it.itemStatus||it.status);
-      txt(it.code,23,'700','#221D18',2);
-      txt(it.name,22,'400','#221D18',2);
-      var col=st[0]==='ok'?'#137A5A':st[0]==='no'?'#C63A47':'#B5771A';
-      txt((Number(it.qty)||0)+' '+String(it.uom||'').trim()+' · '+st[1],22,'600',col,Number(it.unrealized)>0?2:14);
-      if(Number(it.unrealized)>0) txt(Number(it.unrealized)+' '+String(it.uom||'').trim()+' tidak terpenuhi',20,'500','#C63A47',14);
-    });
-    y+=10;
-  });
-  y+=6;
-  txt('Sumber: portal distributor · Keluarga Sultan',19,'500','#6B6055',0);
-  return Math.ceil(y+P*0.55);
-}
-function shareImage(){
-  if(!card) return;
-  var cv=document.createElement('canvas');
-  cv.width=1080; cv.height=1000;
-  var h=drawCard(cv,false);
-  cv.height=h;
-  drawCard(cv,true);
-  cv.toBlob(function(blob){
-    var name='SO-'+(card.vessel||'kapal').replace(/[^A-Za-z0-9]+/g,'-')+'.png';
-    var file=null;
-    try{ file=new File([blob],name,{type:'image/png'}) }catch(e){}
-    if(file&&navigator.canShare&&navigator.canShare({files:[file]})){
-      navigator.share({files:[file],text:card.vessel}).catch(function(){});
-      return;
-    }
-    var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
-    toast('Gambar disimpan 📥');
-  });
 }
 
 /* ---------- boot ---------- */
