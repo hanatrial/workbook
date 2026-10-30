@@ -56,6 +56,16 @@
   .foot{font-size:11px;color:var(--muted);text-align:center;margin-top:16px;line-height:1.6}
   .foot a{color:var(--brand);text-decoration:none;font-weight:600}
   .actions{display:none;gap:8px;margin:14px 0 18px}
+  .search{position:sticky;top:0;z-index:5;background:var(--bg);padding:2px 0 12px;display:none}
+  .search .f{position:relative}
+  .search input{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:0;
+    border-radius:14px;padding:12px 44px 12px 14px;box-shadow:inset 0 0 0 1px var(--line);outline:none;-webkit-appearance:none}
+  .search input:focus{box-shadow:inset 0 0 0 2px var(--brand)}
+  .search input::-webkit-search-cancel-button{display:none}
+  .search .x{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:40px;height:40px;border:0;background:none;color:var(--muted);font-size:17px;cursor:pointer;display:none}
+  .search .hit{font-size:11.5px;color:var(--muted);margin-top:6px}
+  .search .hit:empty{display:none}
+  mark{background:rgba(181,119,26,.28);color:inherit;border-radius:3px;padding:0 1px}
   .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,14px);background:#221D18;color:#fff;
     padding:10px 16px;border-radius:999px;font-size:12.5px;font-weight:600;opacity:0;transition:.25s;pointer-events:none}
   .toast.on{opacity:1;transform:translate(-50%,0)}
@@ -69,6 +79,13 @@
       <div class="m" id="sub">Memuat…</div>
     </div>
     <span class="badge" id="count" style="display:none"></span>
+  </div>
+  <div class="search" id="search">
+    <div class="f">
+      <input type="search" id="q" placeholder="Cari nama atau kode item…" autocomplete="off" enterkeyhint="search" aria-label="Cari item" />
+      <button type="button" class="x" id="qx" aria-label="Hapus pencarian">✕</button>
+    </div>
+    <div class="hit" id="hit"></div>
   </div>
   <div id="body"><div class="empty">Memuat data…</div></div>
   <div class="foot">
@@ -110,10 +127,19 @@ function build(vessel){
   });
 }
 
+var QRY='';
+function norm(s){return String(s==null?'':s).toLowerCase().replace(/\s+/g,' ').trim()}
+function hl(s){
+  var t=String(s==null?'':s);if(!QRY)return esc(t);
+  var i=t.toLowerCase().replace(/\s/g,' ').indexOf(QRY);if(i<0)return esc(t);
+  return esc(t.slice(0,i))+'<mark>'+esc(t.slice(i,i+QRY.length))+'</mark>'+esc(t.slice(i+QRY.length));
+}
+function match(it){return !QRY||norm(it.name).indexOf(QRY)>=0||norm(it.code).indexOf(QRY)>=0}
+
 function itemHtml(it){
   var s=stCls(it.itemStatus||it.status), miss=Number(it.unrealized)>0;
-  return '<div class="it"><div class="cd"><b>'+esc(it.code||'—')+'</b><span class="pill '+s[0]+'">'+esc(s[1])+'</span></div>'
-    +'<div class="nm">'+esc(it.name||'')+'</div>'
+  return '<div class="it"><div class="cd"><b>'+(it.code?hl(it.code):'—')+'</b><span class="pill '+s[0]+'">'+esc(s[1])+'</span></div>'
+    +'<div class="nm">'+hl(it.name||'')+'</div>'
     +'<div class="qt">'+(Number(it.qty)||0)+' '+esc(it.uom||'')+'</div>'
     +(miss?'<div class="miss">'+Number(it.unrealized)+' '+esc(it.uom||'')+' tidak terpenuhi</div>':'')+'</div>'
 }
@@ -124,21 +150,38 @@ function render(data){
   $('sub').innerHTML='ETA '+esc(fd(data.eta))+(data.destinations?' · '+esc(data.destinations):'');
   $('count').style.display='';
   $('count').textContent=data.sos.length+' SO';
+  $('search').style.display=data.sos.some(function(s){return s.hasDetail})?'block':'none';
   if(!data.sos.length){
     $('body').innerHTML='<div class="empty">Kapal ini belum punya nomor SO. Detail item belum bisa ditampilkan.</div>';
     return;
   }
-  $('body').innerHTML=data.sos.map(function(s){
+  renderList();
+}
+
+function renderList(){
+  var data=card, nItem=0, nSo=0;
+  var html=data.sos.map(function(s){
+    var items=s.items.filter(match);
+    if(QRY&&!items.length)return '';
+    if(QRY){nItem+=items.length;nSo++}
     var head='<div><div class="site">'+esc(s.site)+'</div>'
       +'<div class="meta">SO '+esc(s.so)+(s.container?' · '+esc(s.container):'')+'</div></div>';
     if(!s.hasDetail)
       return '<div class="card">'+head+'<div class="it"><div class="qt">Detail item belum ada di portal.</div></div></div>';
     // klik untuk buka/tutup daftar item (dropdown); kalau hanya satu SO, langsung terbuka
-    return '<details class="card"'+(data.sos.length===1?' open':'')+'><summary>'+head
-      +'<span class="sum-r"><span class="cnt">'+s.items.length+' item</span><i class="chev"></i></span></summary>'
-      +'<div class="body">'+s.items.map(itemHtml).join('')+'</div></details>';
+    return '<details class="card"'+(data.sos.length===1||QRY?' open':'')+'><summary>'+head
+      +'<span class="sum-r"><span class="cnt">'+(QRY?items.length+' dari ':'')+s.items.length+' item</span><i class="chev"></i></span></summary>'
+      +'<div class="body">'+items.map(itemHtml).join('')+'</div></details>';
   }).join('');
+  $('hit').textContent=QRY&&nItem?nItem+' item cocok di '+nSo+' SO':'';
+  $('body').innerHTML=html||'<div class="empty">Tidak ada item yang cocok dengan “'+esc($('q').value.trim())+'”.</div>';
 }
+
+$('q').addEventListener('input',function(){
+  QRY=norm(this.value);$('qx').style.display=this.value?'block':'none';
+  if(card)renderList();
+});
+$('qx').addEventListener('click',function(){var q=$('q');q.value='';QRY='';this.style.display='none';if(card)renderList();q.focus()});
 
 /* ---------- boot ---------- */
 (function(){
