@@ -1336,6 +1336,31 @@ function allShipmentSites(){
   });
   return [...set].sort((a,b)=>a.localeCompare(b));
 }
+function openSoDetail(so){
+  const id=String(so||'').trim(); if(!id) return;
+  const base=((FIREBASE_CONFIG&&FIREBASE_CONFIG.databaseURL)||'').replace(/\/$/,'');
+  if(!base){ toast('Detail SO butuh koneksi'); return; }
+  sheet('SO '+esc(id),'<div style="color:var(--muted);font-size:13px">Memuat item…</div>');
+  fetch(`${base}/soItems/${encodeURIComponent(id)}.json`).then(r=>r.json()).then(o=>{
+    const body=$('.sheet-body'); if(!body) return;
+    const items=(o&&o.items)||[];
+    if(!items.length){ body.innerHTML='<div style="color:var(--muted);font-size:13px">Detail item belum ada untuk SO ini.</div>'; return; }
+    body.innerHTML=items.map(it=>{
+      const st=String(it.itemStatus||it.status||'');
+      const cls=/penuh/i.test(st)?'done':/tidak/i.test(st)?'due':'todo';
+      const sisa=Number(it.unrealized)>0?`<div style="font-size:11.5px;color:var(--danger);margin-top:2px">${Number(it.unrealized)} ${esc(it.uom||'')} tidak terpenuhi</div>`:'';
+      return `<div style="padding:11px 0;border-bottom:1px solid var(--line)">
+        <div style="display:flex;gap:8px;align-items:center;justify-content:space-between">
+          <b style="font-size:13px">${esc(it.code||'—')}</b>
+          <span class="pill ${cls}">${esc(st||'—')}</span>
+        </div>
+        <div style="font-size:12.5px;margin-top:3px">${esc(it.name||'')}</div>
+        <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${Number(it.qty)||0} ${esc(it.uom||'')}</div>
+        ${sisa}
+      </div>`;
+    }).join('');
+  }).catch(()=>{ const body=$('.sheet-body'); if(body) body.innerHTML='<div style="color:var(--muted);font-size:13px">Gagal memuat detail item.</div>'; });
+}
 function viewShipments(){
   const q=shipSiteFilter.trim().toLowerCase();
   const list=(state.shipments||[]).slice().sort((a,b)=>{
@@ -1362,7 +1387,7 @@ function viewShipments(){
     const arrived=shipmentArrived(s);
     if(!arrived) notArrived++;
     const etdWarn=shipmentEtdPassedNotArrived(s);
-    const linesTable = visibleLines&&visibleLines.length ? `<div style="overflow-x:auto;margin-top:10px"><table class="sched-table"><thead><tr><th></th><th>Customer Site</th><th>No SO</th><th>Container</th></tr></thead><tbody>${visibleLines.map(l=>`<tr style="${l.arrived?'opacity:.55':''}"><td><input type="checkbox" class="ds-check" ${l.arrived?'checked':''} onchange="toggleLineArrived('${s.id}','${esc(String(l.soNo||'')).replace(/'/g,"\\'")}')"/></td><td style="${l.arrived?'text-decoration:line-through':''}">${esc(l.site||'')}</td><td>${esc(l.soNo||'')}</td><td>${esc(l.containerSize||'')}</td></tr>`).join('')}</tbody></table>${q&&visibleLines.length<lines.length?`<div style="font-size:11px;color:var(--muted);margin-top:4px">Showing ${visibleLines.length} of ${lines.length} customer sites matching "${esc(shipSiteFilter)}"</div>`:''}</div>` : '';
+    const linesTable = visibleLines&&visibleLines.length ? `<div style="overflow-x:auto;margin-top:10px"><table class="sched-table"><thead><tr><th></th><th>Customer Site</th><th>No SO</th><th>Container</th></tr></thead><tbody>${visibleLines.map(l=>`<tr style="${l.arrived?'opacity:.55':''}"><td><input type="checkbox" class="ds-check" ${l.arrived?'checked':''} onchange="toggleLineArrived('${s.id}','${esc(String(l.soNo||'')).replace(/'/g,"\\'")}')"/></td><td style="${l.arrived?'text-decoration:line-through':''}">${esc(l.site||'')}</td><td>${l.soNo?`<button class="link-btn" style="font-size:12.5px;padding:2px 0" onclick="openSoDetail('${esc(String(l.soNo)).replace(/'/g,"\\'")}')">${esc(l.soNo)}</button>`:''}</td><td>${esc(l.containerSize||'')}</td></tr>`).join('')}</tbody></table>${q&&visibleLines.length<lines.length?`<div style="font-size:11px;color:var(--muted);margin-top:4px">Showing ${visibleLines.length} of ${lines.length} customer sites matching "${esc(shipSiteFilter)}"</div>`:''}</div>` : '';
     const expLine = lines[0]||{};
     return `<div class="card pad ship-card ${arrived?'arrived':''}">
       ${etdWarn?`<div class="ship-warn-banner">⚠️ ETA passed, not yet arrived</div>`:''}
