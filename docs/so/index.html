@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#F3EEE5" />
+<title>Detail SO &amp; Item</title>
+<meta property="og:title" content="Detail SO &amp; Item — Ship Monitor" />
+<meta property="og:description" content="Isi SO, qty, dan status realisasi per kapal." />
+<meta property="og:image" content="https://hanatrial.github.io/workbook/icons/icon-192.png" />
+<link rel="apple-touch-icon" href="https://hanatrial.github.io/workbook/icons/icon-192.png" />
+<style>
+  :root{
+    --bg:#F3EEE5; --card:#FFFDF9; --ink:#221D18; --muted:#6B6055;
+    --brand:#0B6B5E; --line:rgba(34,29,24,.10);
+    --danger:#C63A47; --warn:#B5771A; --ok:#137A5A; --sand:#EFE8DA;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+    letter-spacing:-.01em;padding:20px 16px 40px}
+  .wrap{max-width:640px;margin:0 auto}
+  .top{display:flex;align-items:flex-start;gap:10px;margin-bottom:16px}
+  .top h1{font-size:21px;margin:0;line-height:1.25;letter-spacing:-.02em}
+  .top .m{font-size:12.5px;color:var(--muted);margin-top:4px}
+  .badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:rgba(11,107,94,.12);color:var(--brand);white-space:nowrap}
+  .btn{border:none;background:var(--brand);color:#fff;font:inherit;font-weight:700;font-size:13.5px;
+    padding:11px 16px;border-radius:14px;width:100%;cursor:pointer}
+  .btn.ghost{background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+  .btn:active{transform:scale(.99)}
+  .card{background:var(--card);border-radius:20px;padding:16px 16px 14px;margin-bottom:12px;
+    box-shadow:inset 0 0 0 1px var(--line),0 10px 26px -20px rgba(34,29,24,.5)}
+  .site{font-size:14px;font-weight:700;line-height:1.35}
+  .meta{font-size:12px;color:var(--muted);margin-top:3px}
+  .it{padding:11px 0;border-top:1px solid var(--line)}
+  .it:first-of-type{margin-top:10px}
+  .it .cd{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .it b{font-size:12.5px}
+  .it .nm{font-size:12.5px;margin-top:2px;line-height:1.4}
+  .it .qt{font-size:12px;color:var(--muted);margin-top:3px}
+  .pill{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:999px;white-space:nowrap}
+  .pill.ok{background:rgba(19,122,90,.14);color:var(--ok)}
+  .pill.no{background:rgba(198,58,71,.12);color:var(--danger)}
+  .pill.mid{background:rgba(181,119,26,.14);color:var(--warn)}
+  .miss{font-size:11.5px;color:var(--danger);margin-top:2px}
+  .empty,.err{background:var(--card);border-radius:16px;padding:18px;font-size:13px;color:var(--muted);
+    box-shadow:inset 0 0 0 1px var(--line);text-align:center;line-height:1.5}
+  .foot{font-size:11px;color:var(--muted);text-align:center;margin-top:16px;line-height:1.6}
+  .foot a{color:var(--brand);text-decoration:none;font-weight:600}
+  .actions{display:none;gap:8px;margin:14px 0 18px}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,14px);background:#221D18;color:#fff;
+    padding:10px 16px;border-radius:999px;font-size:12.5px;font-weight:600;opacity:0;transition:.25s;pointer-events:none}
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div style="flex:1">
+      <h1 id="title">Detail SO &amp; Item</h1>
+      <div class="m" id="sub">Memuat…</div>
+    </div>
+    <span class="badge" id="count" style="display:none"></span>
+  </div>
+  <div class="actions" id="actions">
+    <button class="btn" onclick="shareImage()">📷 Simpan / bagikan gambar</button>
+  </div>
+  <div id="body"><div class="empty">Memuat data…</div></div>
+  <div class="foot">
+    Sumber: portal distributor · <a href="https://hanatrial.github.io/workbook/">buka app Keluarga Sultan</a>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+var DB='https://workbook-ks-default-rtdb.asia-southeast1.firebasedatabase.app';
+var $=function(i){return document.getElementById(i)};
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function toast(m){var t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('on')},1900)}
+var HR=['Min','Sen','Sel','Rab','Kam','Jum','Sab'], MO=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+function fd(s){if(!s)return'—';var d=new Date(s+'T00:00:00');if(isNaN(d))return s;return HR[d.getDay()]+' '+d.getDate()+' '+MO[d.getMonth()]+' '+d.getFullYear()}
+function stCls(st){var t=String(st||'');if(/penuh/i.test(t))return['ok',t];if(/tidak/i.test(t))return['no',t];return t?['mid',t]:['mid','—']}
+function get(p){return fetch(DB+p).then(function(r){return r.json()})}
+function par(){var o={};(location.search||'').replace(/^\?/,'').split('&').forEach(function(kv){if(!kv)return;var i=kv.indexOf('=');var k=decodeURIComponent(i<0?kv:kv.slice(0,i)),v=decodeURIComponent(i<0?'':kv.slice(i+1));o[k]=v});return o}
+
+var card=null;
+
+function build(vessel){
+  var lines=(vessel.lines||[]).filter(function(l){return l&&l.soNo});
+  return Promise.all(lines.map(function(l){
+    return get('/soItems/'+encodeURIComponent(l.soNo)+'.json').then(function(o){return o}).catch(function(){return null})
+  })).then(function(details){
+    return {
+      vessel:vessel.vessel||'—',
+      eta:vessel.eta||'',
+      destinations:vessel.destinations||'',
+      sos:lines.map(function(l,i){
+        var d=details[i]||null;
+        return {
+          site:l.site||'—', so:String(l.soNo), container:l.containerSize||'',
+          items:(d&&d.items)||[], hasDetail:!!(d&&d.items&&d.items.length)
+        };
+      })
+    };
+  });
+}
+
+function itemHtml(it){
+  var s=stCls(it.itemStatus||it.status), miss=Number(it.unrealized)>0;
+  return '<div class="it"><div class="cd"><b>'+esc(it.code||'—')+'</b><span class="pill '+s[0]+'">'+esc(s[1])+'</span></div>'
+    +'<div class="nm">'+esc(it.name||'')+'</div>'
+    +'<div class="qt">'+(Number(it.qty)||0)+' '+esc(it.uom||'')+'</div>'
+    +(miss?'<div class="miss">'+Number(it.unrealized)+' '+esc(it.uom||'')+' tidak terpenuhi</div>':'')+'</div>'
+}
+
+function render(data){
+  card=data;
+  $('title').textContent=data.vessel;
+  $('sub').innerHTML='ETA '+esc(fd(data.eta))+(data.destinations?' · '+esc(data.destinations):'');
+  $('count').style.display='';
+  $('count').textContent=data.sos.length+' SO';
+  if(!data.sos.length){
+    $('body').innerHTML='<div class="empty">Kapal ini belum punya nomor SO. Detail item belum bisa ditampilkan.</div>';
+    return;
+  }
+  $('body').innerHTML=data.sos.map(function(s){
+    return '<div class="card"><div class="site">'+esc(s.site)+'</div>'
+      +'<div class="meta">SO '+esc(s.so)+(s.container?' · '+esc(s.container):'')+'</div>'
+      +(s.hasDetail?s.items.map(itemHtml).join(''):'<div class="it"><div class="qt">Detail item belum ada di portal.</div></div>')
+      +'</div>';
+  }).join('');
+  $('actions').style.display='flex';
+}
+
+/* ---------- gambar ---------- */
+function wrap(ctx,str,maxW){
+  var words=String(str==null?'':str).split(' '),line='',out=[];
+  words.forEach(function(w){
+    var t=line?line+' '+w:w;
+    if(ctx.measureText(t).width>maxW&&line){out.push(line);line=w}else line=t;
+  });
+  if(line)out.push(line);
+  return out;
+}
+function drawCard(cv,paint){
+  var ctx=cv.getContext('2d'),W=cv.width,P=56,maxW=W-P*2,y=P;
+  function put(lines,size,weight,color,lead,gap){
+    ctx.font=weight+' '+size+'px "Plus Jakarta Sans",system-ui,sans-serif';
+    if(paint){ctx.fillStyle=color;ctx.textBaseline='top';lines.forEach(function(l,i){ctx.fillText(l,P,y+i*size*lead)})}
+    y+=lines.length*size*lead+gap;
+  }
+  function txt(str,size,weight,color,gap,lead){
+    ctx.font=weight+' '+size+'px "Plus Jakarta Sans",system-ui,sans-serif';
+    put(wrap(ctx,str,maxW),size,weight,color,lead||1.38,gap||0);
+  }
+  if(paint){ctx.fillStyle='#F3EEE5';ctx.fillRect(0,0,W,cv.height)}
+  txt('DETAIL SO & ITEM',22,'700','#0B6B5E',6,1.2);
+  y+=10;
+  txt(card.vessel,40,'700','#221D18',4);
+  txt('ETA '+fd(card.eta)+(card.destinations?' · '+card.destinations:''),24,'500','#6B6055',18);
+  if(paint){ctx.fillStyle='rgba(34,29,24,.10)';ctx.fillRect(P,y-8,W-P*2,1)}
+  y+=22;
+  card.sos.forEach(function(s){
+    txt(s.site,28,'700','#221D18',2);
+    txt('SO '+s.so+(s.container?' · '+s.container:''),22,'500','#6B6055',12);
+    if(!s.hasDetail){ txt('Detail item belum ada di portal.',22,'500','#6B6055',16); return }
+    s.items.forEach(function(it){
+      var st=stCls(it.itemStatus||it.status);
+      txt(it.code,23,'700','#221D18',2);
+      txt(it.name,22,'400','#221D18',2);
+      var col=st[0]==='ok'?'#137A5A':st[0]==='no'?'#C63A47':'#B5771A';
+      txt((Number(it.qty)||0)+' '+String(it.uom||'').trim()+' · '+st[1],22,'600',col,Number(it.unrealized)>0?2:14);
+      if(Number(it.unrealized)>0) txt(Number(it.unrealized)+' '+String(it.uom||'').trim()+' tidak terpenuhi',20,'500','#C63A47',14);
+    });
+    y+=10;
+  });
+  y+=6;
+  txt('Sumber: portal distributor · Keluarga Sultan',19,'500','#6B6055',0);
+  return Math.ceil(y+P*0.55);
+}
+function shareImage(){
+  if(!card) return;
+  var cv=document.createElement('canvas');
+  cv.width=1080; cv.height=1000;
+  var h=drawCard(cv,false);
+  cv.height=h;
+  drawCard(cv,true);
+  cv.toBlob(function(blob){
+    var name='SO-'+(card.vessel||'kapal').replace(/[^A-Za-z0-9]+/g,'-')+'.png';
+    var file=null;
+    try{ file=new File([blob],name,{type:'image/png'}) }catch(e){}
+    if(file&&navigator.canShare&&navigator.canShare({files:[file]})){
+      navigator.share({files:[file],text:card.vessel}).catch(function(){});
+      return;
+    }
+    var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
+    toast('Gambar disimpan 📥');
+  });
+}
+
+/* ---------- boot ---------- */
+(function(){
+  var q=par(), id=q.v, so=q.so;
+  if(!id&&!so){
+    $('sub').textContent='Link tidak lengkap';
+    $('body').innerHTML='<div class="err">Link ini belum menyertakan kapal atau nomor SO.<br>Minta ulang link-nya dari admin.</div>';
+    return;
+  }
+  if(so){
+    get('/soItems/'+encodeURIComponent(so)+'.json').then(function(d){
+      if(!d){ $('body').innerHTML='<div class="err">SO '+esc(so)+' belum ada detail itemnya.</div>'; $('sub').textContent='Detail SO'; return }
+      render({vessel:'SO '+so,eta:d.eta||'',destinations:d.site||'',
+        sos:[{site:d.site||'—',so:so,container:'',items:d.items||[],hasDetail:!!(d.items||[]).length}]});
+    }).catch(function(){ $('body').innerHTML='<div class="err">Gagal memuat data. Cek koneksi lalu coba lagi.</div>' });
+    return;
+  }
+  get('/shipments/'+encodeURIComponent(id)+'.json').then(function(v){
+    if(!v||!v.vessel){ $('body').innerHTML='<div class="err">Kapal tidak ditemukan. Link mungkin sudah usang.</div>'; return }
+    return build(v).then(render);
+  }).catch(function(){ $('body').innerHTML='<div class="err">Gagal memuat data. Cek koneksi lalu coba lagi.</div>' });
+})();
+</script>
+</body>
+</html>
