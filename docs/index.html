@@ -1443,7 +1443,7 @@ function buildShipmentUpdateText(){
   const siteLines=s=>(s.lines&&s.lines.length)
     ? [...new Set(s.lines.map(l=>l.site||'—'))].join('\n')   // hanya distributor (tanpa nomor SO), tanpa duplikat
     : (s.destinations||'—');
-  const SO_PAGE='https://ks-workbook.web.app/so/?v=';
+  const SO_PAGE='https://hanatrial.github.io/workbook/so/?v=';
   const shipLine=s=>`${s.vessel}, ETA: ${fmtDate(s.eta)}\n${siteLines(s)}\n🔎 Detail SO & item: ${SO_PAGE}${encodeURIComponent(s.id)}`;
   const lines=[`*Vessel Update — ${new Date().toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}*`, '', '⛔ *Catatan: DILARANG membagikan link di bawah ini ke pihak external.*', ''];
   if(overdue.length){
