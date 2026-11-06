@@ -559,10 +559,10 @@
   .photo-preview.has{border-color:var(--line)}
 
   /* ---- Scroll-reveal entry (transform/opacity only) ---- */
-  .reveal{opacity:0;transform:translateY(22px);filter:blur(6px);
-    transition:opacity .8s var(--ease),transform .8s var(--ease),filter .8s var(--ease)}
-  .reveal.in{opacity:1;transform:none;filter:none}
-  @media(prefers-reduced-motion:reduce){.reveal{transition:none;opacity:1;transform:none;filter:none}}
+  .reveal{opacity:0;transform:translateY(22px);
+    transition:opacity .8s var(--ease),transform .8s var(--ease)}
+  .reveal.in{opacity:1;transform:none}
+  @media(prefers-reduced-motion:reduce){.reveal{transition:none;opacity:1;transform:none}}
 
   /* ---- Accessibility: visible focus for keyboard / switch / screen-reader users ---- */
   button:focus-visible{outline:2px solid var(--brand);outline-offset:3px}
@@ -629,6 +629,16 @@
   .empty-more{background:rgba(222,143,31,.18);color:#8a5a12}
   .ring-pct{fill:var(--ink)}
   .toast{background:var(--brand-ink)}
+  /* Desktop: layout is a 720px column on a wide screen, so full-width glass blur + fixed grain layers
+     get re-composited every scroll frame over a huge area. Use plain translucent surfaces instead. */
+  @media(min-width:900px){
+    header,nav,.sheet-head,.overlay,.me-btn{-webkit-backdrop-filter:none;backdrop-filter:none}
+    header{background:rgba(253,244,222,.96)}
+    nav{background:rgba(251,248,242,.97)}
+    .sheet-head{background:rgba(251,248,242,.98)}
+    .overlay{background:rgba(34,29,24,.55)}
+    body::after{display:none}
+  }
 </style>
 </head>
 <body>
@@ -822,6 +832,13 @@ function hpmPurgeTombstoned(){
   });
   if(state.hpmEntries.length!==before){ DB.save(state); render(); }
 }
+/* Several collections can change in a burst (first load, a teammate posting): save the cache and
+   redraw once for the whole burst instead of once per collection. */
+let _syncRenderTimer=null;
+function scheduleSyncRender(){
+  clearTimeout(_syncRenderTimer);
+  _syncRenderTimer=setTimeout(()=>{ _syncRenderTimer=null; DB.save(state); render(); }, 250);
+}
 function initDataSync(){
   if(!fbDb) return;
   Promise.all(SYNC_COLLECTIONS.map(coll=>
@@ -843,9 +860,14 @@ function initDataSync(){
     SYNC_COLLECTIONS.forEach(coll=>{
       fbDb.ref(coll).on('value', snap=>{
         const val = snap.val() || {};
-        lastSynced[coll] = {}; Object.keys(val).forEach(id=>{ lastSynced[coll][id]=JSON.stringify(val[id]); });
+        const next = {}; Object.keys(val).forEach(id=>{ next[id]=JSON.stringify(val[id]); });
+        const prev = lastSynced[coll] || {};
+        const nk = Object.keys(next);
+        // Echo of our own write / unchanged data: nothing to save or redraw.
+        if(nk.length===Object.keys(prev).length && nk.every(id=>prev[id]===next[id])) return;
+        lastSynced[coll] = next;
         state[coll] = Object.values(val);
-        DB.save(state); render();
+        scheduleSyncRender();
         if(coll==='hpmEntries') hpmPurgeTombstoned();
       });
     });
@@ -1102,7 +1124,7 @@ function photoCard(p){
     <div class="photo-head">${avatar(p.authorId)}
       <div class="meta"><b>${esc(member(p.authorId)?.name||'Unknown')}</b><small>${timeAgo(p.createdAt)}</small></div>
     </div>
-    <img class="photo-img" src="${p.dataUrl}" alt="" onclick="openPhoto('${p.id}')"/>
+    <img class="photo-img" src="${p.dataUrl}" alt="" loading="lazy" decoding="async" onclick="openPhoto('${p.id}')"/>
     <div class="photo-body">
       ${p.caption?`<p class="cap">${esc(p.caption)}</p>`:''}
       ${p.location?`<span class="loc">📍 ${esc(p.location)}</span>`:''}
@@ -2355,7 +2377,7 @@ function taskFromPhoto(pid){ if(needMe())return; taskPhotoLink=pid; openTaskForm
 function openPhoto(id){
   const p=state.photos.find(x=>x.id===id); if(!p) return;
   sheet('Photo', `
-    <img class="detail-img" src="${p.dataUrl}"/>
+    <img class="detail-img" src="${p.dataUrl}" loading="lazy" decoding="async"/>
     <div class="photo-head" style="padding:0 0 8px">${avatar(p.authorId)}<div class="meta"><b>${esc(member(p.authorId)?.name)}</b><small>${timeAgo(p.createdAt)}</small></div></div>
     ${p.caption?`<p style="margin:0 0 8px">${esc(p.caption)}</p>`:''}
     ${p.location?`<span class="loc">📍 ${esc(p.location)}</span>`:''}
@@ -2385,7 +2407,7 @@ function openTask(id){
       </div>
       <div style="color:var(--muted);font-size:12px;margin-top:6px">Created by ${esc(member(t.creatorId)?.name||'—')} · ${timeAgo(t.createdAt)}${t.repeat&&t.repeat!=='none'?' · 🔁 Repeats '+t.repeat:''}</div>
     </div>
-    ${linked?`<img class="detail-img" src="${linked.dataUrl}"/>`:''}
+    ${linked?`<img class="detail-img" src="${linked.dataUrl}" loading="lazy" decoding="async"/>`:''}
     ${t.link?`<a class="btn ghost task-link-btn" href="${esc(t.link)}" target="_blank" rel="noopener noreferrer" style="margin-bottom:12px">🔗 Open link</a>`:''}
     ${renderChecklist(t)}
     <div class="seg" id="stSeg">
@@ -2662,6 +2684,7 @@ function reminderBanner(){
     </div>
   </div>`;
 }
+let storyLimit=15;   // Cerita ditampilkan bertahap supaya tidak memuat semua foto sekaligus
 function viewStories(){
   const list=[...(state.stories||[])].sort((a,b)=> (b.pinned?1:0)-(a.pinned?1:0) || b.createdAt-a.createdAt);
   const meName=me()?me().name.split(' ')[0]:null;
@@ -2674,14 +2697,15 @@ function viewStories(){
     <div class="hg-sub">News & stories from Keluarga Sultan</div>
   </div></div>` + reminderBanner();
   if(!list.length) return head+emptyBox('👇','The table is still empty','Be the first to share news, a fun photo, or a story today — the family is waiting!');
-  return head+list.map(storyCard).join('');
+  const more=list.length-storyLimit;
+  return head+list.slice(0,storyLimit).map(storyCard).join('')+(more>0?`<button class="chip" style="display:block;margin:6px auto 14px" onclick="storyLimit+=15;render()">Muat lagi (${more})</button>`:'');
 }
 function storyCard(s){
   const c=s.comments||[], photos=s.photos||[];
   const shown=photos.slice(0,4), extra=photos.length-shown.length;
   const grid = photos.length?`<div class="story-photos c${Math.min(photos.length,4)}">${shown.map((p,i)=>{
     const isLast=i===shown.length-1 && extra>0;
-    return `<div class="stphoto-wrap" onclick="openStory('${s.id}')"><img src="${p}"/>${isLast?`<div class="stphoto-more">+${extra}</div>`:''}</div>`;
+    return `<div class="stphoto-wrap" onclick="openStory('${s.id}')"><img src="${p}" loading="lazy" decoding="async"/>${isLast?`<div class="stphoto-more">+${extra}</div>`:''}</div>`;
   }).join('')}</div>`:'';
   return `<div class="card photo-card">
     <div class="photo-head">${avatar(s.authorId)}
@@ -2749,7 +2773,7 @@ function toggleReact(id,e){
 }
 function openStory(id){
   const s=state.stories.find(x=>x.id===id); if(!s) return;
-  const photos=(s.photos||[]).map(p=>`<img class="detail-img" src="${p}"/>`).join('');
+  const photos=(s.photos||[]).map(p=>`<img class="detail-img" src="${p}" loading="lazy" decoding="async"/>`).join('');
   sheet('Cerita', `
     <div class="photo-head" style="padding:0 0 8px">${avatar(s.authorId)}<div class="meta"><b>${esc(member(s.authorId)?.name)}</b><small>${timeAgo(s.createdAt)}</small></div></div>
     ${s.text?`<p style="margin:0 0 12px;font-size:15px;white-space:pre-wrap">${renderMentions(esc(s.text))}</p>`:''}
