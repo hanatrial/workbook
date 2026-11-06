@@ -1410,9 +1410,10 @@ function viewShipments(){
     </div>`;
   }).join('');
   const summary = q ? `<div style="font-size:12.5px;color:var(--muted);margin-bottom:10px">${shown?`${shown} shipment${shown===1?'':'s'} for "${esc(shipSiteFilter)}" — ${notArrived} not yet arrived`:`No shipments found for "${esc(shipSiteFilter)}"`}</div>` : '';
-  return `<div style="display:flex;gap:8px;margin-bottom:14px">
+  return `<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
     <button class="btn ghost" style="flex:1" onclick="openShipmentForm()">➕ Add shipment</button>
     <button class="btn ghost" style="flex:1" onclick="openShareShipmentUpdate()">📤 Share update</button>
+    <button class="btn ghost" style="flex:1 1 100%" onclick="openShipmentExport()">📥 Download Excel per distributor</button>
   </div>
   ${filterBar}${summary}
   ${cards||(list.length?'':`<div class="card pad" style="color:var(--muted);font-size:13.5px">No shipments yet. Add the first vessel recap 🚢</div>`)}`;
@@ -1457,6 +1458,74 @@ function buildShipmentUpdateText(){
   lines.push(`⏳ *Tiba minggu ini*`);
   lines.push(upcoming.length?upcoming.map(shipLine).join('\n\n'):'- Tidak ada');
   return lines.join('\n');
+}
+/* ---- EXPORT EXCEL PER DISTRIBUTOR (periode berdasarkan ETA) ---- */
+const SO_DB=((typeof FIREBASE_CONFIG!=='undefined'&&FIREBASE_CONFIG.databaseURL)||'https://workbook-ks-default-rtdb.asia-southeast1.firebasedatabase.app/').replace(/\/$/,'');
+function loadXlsx(){
+  return window.XLSX?Promise.resolve():new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload=res; s.onerror=()=>rej(new Error('Gagal memuat pustaka Excel')); document.head.appendChild(s);
+  });
+}
+function openShipmentExport(){
+  const sites=[...allShipmentSites()].sort((a,b)=>a.localeCompare(b));
+  const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const n=new Date(), from=new Date(n.getFullYear(),n.getMonth(),1), to=new Date(n.getFullYear(),n.getMonth()+2,0);
+  sheet('Download Excel per distributor', `
+    <label class="f">Distributor</label>
+    <select class="in" id="xpSite"><option value="">Semua distributor</option>${sites.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('')}</select>
+    <label class="f">Periode (berdasarkan ETA) — dari</label>
+    <input class="in" type="date" id="xpFrom" value="${iso(from)}"/>
+    <label class="f">sampai</label>
+    <input class="in" type="date" id="xpTo" value="${iso(to)}"/>
+    <div id="xpMsg" style="color:var(--muted);font-size:12.5px;margin:10px 0">Isi: nama kapal, ETD, ETA, no SO, dan daftar item per SO.</div>
+    <button class="btn primary" id="xpGo" onclick="downloadShipmentExcel()">⬇ Download Excel</button>`);
+}
+async function downloadShipmentExcel(){
+  const site=($('#xpSite').value||'').trim(), from=$('#xpFrom').value, to=$('#xpTo').value, msg=$('#xpMsg'), btn=$('#xpGo');
+  if(!from||!to){ msg.textContent='Isi periode dari dan sampai.'; return; }
+  if(from>to){ msg.textContent='Tanggal "dari" harus sebelum "sampai".'; return; }
+  btn.disabled=true; msg.textContent='Mengambil data item…';
+  try{
+    const ships=(state.shipments||[]).filter(s=>s.eta&&s.eta>=from&&s.eta<=to)
+      .sort((a,b)=>String(a.eta).localeCompare(String(b.eta)));
+    const jobs=[]; // satu baris SO per kapal (sesuai distributor yang dipilih)
+    ships.forEach(s=>{
+      const lines=(s.lines||[]).filter(l=>!site||(l.site||'').trim()===site);
+      lines.forEach(l=>jobs.push({s,l}));
+      if(!(s.lines||[]).length&&s.destinations&&(!site||s.destinations.split(',').map(x=>x.trim()).includes(site)))
+        jobs.push({s,l:{site:site||s.destinations,soNo:''}});
+    });
+    if(!jobs.length){ msg.textContent='Tidak ada kapal untuk periode/distributor ini.'; btn.disabled=false; return; }
+    const cache={};
+    const getItems=async so=>{
+      if(!so) return null; if(cache[so]!==undefined) return cache[so];
+      try{ const r=await fetch(SO_DB+'/soItems/'+encodeURIComponent(so)+'.json'); cache[so]=r.ok?await r.json():null; }
+      catch(e){ cache[so]=null; }
+      return cache[so];
+    };
+    await Promise.all([...new Set(jobs.map(j=>String(j.l.soNo||'')).filter(Boolean))].map(getItems));
+    const d=iso=>{ if(!iso) return ''; const [y,m,dd]=iso.split('-').map(Number); return new Date(Date.UTC(y,m-1,dd,12)); };
+    const rows=[['Distributor','Nama Kapal','ETD','ETA','No SO','Kode Item','Nama Item','Qty','UOM','Status Item']];
+    jobs.sort((a,b)=>(a.l.site||'').localeCompare(b.l.site||'')||String(a.s.eta).localeCompare(String(b.s.eta))||String(a.l.soNo||'').localeCompare(String(b.l.soNo||'')));
+    jobs.forEach(({s,l})=>{
+      const so=String(l.soNo||''), det=so?cache[so]:null, items=(det&&det.items)||[];
+      const base=[(l.site||'').trim(),s.vessel||'',d(s.etd),d(s.eta),so];
+      if(!items.length) rows.push([...base,'','(detail item belum ada)','','','']);
+      else items.forEach(it=>rows.push([...base,it.code||'',it.name||'',Number(it.qty)||0,it.uom||'',it.itemStatus||it.status||'']));
+    });
+    await loadXlsx();
+    const ws=XLSX.utils.aoa_to_sheet(rows,{cellDates:true});
+    for(let r=1;r<rows.length;r++) ['C','D'].forEach(c=>{ const cell=ws[c+(r+1)]; if(cell&&cell.v instanceof Date){ cell.t='d'; cell.z='dd-mmm-yyyy'; } });
+    ws['!cols']=[{wch:34},{wch:28},{wch:13},{wch:13},{wch:14},{wch:14},{wch:46},{wch:8},{wch:7},{wch:16}];
+    ws['!autofilter']={ref:'A1:J'+rows.length}; ws['!freeze']={xSplit:0,ySplit:1};
+    const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Shipment');
+    const safe=s=>String(s).replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'').slice(0,40);
+    XLSX.writeFile(wb,`Shipment_${site?safe(site):'Semua'}_${from}_${to}.xlsx`);
+    msg.textContent=`Selesai: ${rows.length-1} baris, ${new Set(jobs.map(j=>j.s.id)).size} kapal.`; toast('Excel terunduh ✓');
+  }catch(e){ msg.textContent='Gagal: '+e.message; }
+  btn.disabled=false;
 }
 function openShareShipmentUpdate(){
   sheet('Share update', `
