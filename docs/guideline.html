@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#FFFFFF" />
+<meta name="description" content="Panduan operasional tim lapangan Keluarga Sultan." />
+<title>Guideline - Keluarga Sultan</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<style>
+  :root{
+    --bg:#FFFFFF; --panel:#F7F7F7; --card:#FFFFFF;
+    --ink:#1F1F1F; --muted:#6E6E6E; --line:#EAEAEA; --line-strong:#DCDCDC;
+    --green:#93C90F; --green-ink:#334A03; --green-soft:#F1F8DC; --green-soft-2:#E4F3BE; --green-line:#CBE78A;
+    --field:#FFFFFF;
+    --radius:12px; --radius-lg:16px; --pill:999px;
+    --font:'Pretendard',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    --ease:cubic-bezier(.22,.61,.36,1);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{background:var(--bg);-webkit-text-size-adjust:100%}
+  body{
+    margin:0;min-height:100vh;background:var(--bg);color:var(--ink);
+    font-family:var(--font);font-size:15px;line-height:1.5;letter-spacing:-.01em;
+  }
+  a{color:inherit}
+  .wrap{width:100%;max-width:680px;margin:0 auto;padding:18px 18px 56px}
+
+  .topbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:2px 0 26px}
+  .icon-btn{
+    display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;
+    flex:none;border:1px solid var(--line);border-radius:12px;background:var(--card);
+    color:var(--ink);text-decoration:none;transition:border-color .2s var(--ease),background .2s var(--ease);
+  }
+  .icon-btn:hover{border-color:var(--green-line);background:#FCFEF7}
+  .tag{
+    display:inline-block;min-height:30px;padding:0 12px;line-height:30px;
+    border-radius:var(--pill);background:var(--green-soft);color:var(--green-ink);
+    font-size:11px;font-weight:700;letter-spacing:.02em;white-space:nowrap;
+  }
+  .tag.plain{background:var(--panel);color:var(--muted)}
+
+  .masthead{padding:0 2px 24px}
+  .masthead h1{
+    margin:0;font-size:clamp(32px,9vw,40px);font-weight:700;line-height:1.1;letter-spacing:-.035em;
+  }
+  .lede{margin:10px 0 0;max-width:44ch;color:var(--muted);font-size:13.5px;line-height:1.55}
+
+  .panel{
+    margin-top:8px;padding:18px 14px 16px;background:var(--panel);
+    border-radius:var(--radius-lg);
+  }
+
+  .search{
+    display:flex;align-items:center;gap:4px;height:48px;padding:0 6px 0 14px;
+    background:var(--field);border:1px solid var(--line-strong);border-radius:10px;
+    transition:border-color .2s var(--ease),box-shadow .2s var(--ease);
+  }
+  .search:focus-within{border-color:var(--green);box-shadow:0 0 0 3px rgba(147,201,15,.18)}
+  .search svg{flex:none;color:var(--muted)}
+  .search input{
+    flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;
+    color:var(--ink);font-family:inherit;font-size:14px;letter-spacing:-.01em;
+  }
+  .search input::placeholder{color:var(--muted);opacity:.8}
+  .clear-btn{
+    flex:none;min-width:44px;height:44px;padding:0 10px;border:0;border-radius:8px;
+    background:var(--green-soft);color:var(--green-ink);font-family:inherit;
+    font-size:11.5px;font-weight:700;cursor:pointer;
+  }
+  .clear-btn:hover{background:var(--green-soft-2)}
+
+  .list-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:22px 4px 10px}
+  .list-head h2{margin:0;font-size:15px;font-weight:700;letter-spacing:-.02em}
+  .count{color:var(--muted);font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+  .list{display:grid;grid-template-columns:1fr;gap:8px}
+  .topic{
+    display:flex;align-items:center;gap:12px;min-height:68px;padding:14px;
+    text-decoration:none;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    transition:border-color .2s var(--ease),background .2s var(--ease);
+  }
+  .topic:hover{border-color:var(--green-line);background:#FCFEF7}
+  .topic:active{background:var(--green-soft)}
+  .topic .num{
+    flex:none;display:inline-flex;align-items:center;justify-content:center;
+    width:34px;height:34px;border-radius:9px;background:var(--green-soft);color:var(--green-ink);
+    font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;
+  }
+  .topic .body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+  .topic .title{font-size:14.5px;font-weight:600;letter-spacing:-.015em;line-height:1.3}
+  .topic .sub{color:var(--muted);font-size:12px;line-height:1.45}
+  .topic .chev{flex:none;color:#8A8A8A}
+
+  .noresult{
+    margin:0;padding:28px 20px;background:var(--card);border:1px solid var(--line);
+    border-radius:var(--radius);color:var(--muted);font-size:13px;text-align:center;
+  }
+  .noresult b{color:var(--ink);font-weight:600}
+
+  .back{
+    display:inline-flex;align-items:center;gap:6px;min-height:44px;margin:0 0 12px -6px;padding:0 6px;
+    text-decoration:none;color:var(--muted);font-size:12.5px;font-weight:600;border-radius:8px;
+    white-space:nowrap;
+    transition:color .2s var(--ease);
+  }
+  .back:hover{color:var(--ink)}
+
+  .detail-head{display:flex;flex-direction:column;align-items:flex-start}
+  .detail-num{margin-bottom:12px;width:74px;padding:0;text-align:center}
+  .detail-head h1{
+    margin:0;width:100%;font-size:clamp(28px,8vw,36px);font-weight:700;line-height:1.15;letter-spacing:-.03em;
+  }
+  .detail-head h1:focus{outline:none}
+  .detail-sub{margin:9px 0 0;max-width:52ch;color:var(--muted);font-size:13.5px}
+  .rule{height:1px;margin:22px 0;background:var(--line)}
+
+  .empty{
+    padding:28px 22px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  }
+  .empty-title{margin:0;font-size:16px;font-weight:700;letter-spacing:-.02em}
+  .empty-copy{margin:6px 0 18px;max-width:44ch;color:var(--muted);font-size:13px}
+  .empty-link{
+    display:flex;align-items:center;justify-content:center;width:100%;min-height:44px;padding:0 18px;
+    border-radius:var(--pill);background:var(--green);color:var(--green-ink);
+    font-size:12.5px;font-weight:700;text-decoration:none;white-space:nowrap;
+    transition:background .2s var(--ease);
+  }
+  .empty-link:hover{background:#A2D81B}
+
+  .materi{max-width:68ch;font-size:14.5px}
+  .materi h2{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:26px 0 8px}
+  .materi h3{font-size:15px;font-weight:700;margin:20px 0 6px}
+  .materi p{margin:0 0 12px}
+  .materi ul,.materi ol{margin:0 0 14px;padding-left:20px}
+  .materi li{margin-bottom:6px}
+  .materi table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13px}
+  .materi th,.materi td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  .materi th{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+
+  .site-foot{margin:40px 2px 0;color:var(--muted);font-size:11.5px}
+
+  :focus-visible{outline:2px solid var(--green-ink);outline-offset:3px}
+  [hidden]{display:none !important}
+
+  @media (min-width:700px){
+    .wrap{padding:28px 24px 72px}
+    .panel{padding:20px 18px 18px}
+    .list{grid-template-columns:1fr 1fr;gap:10px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important}
+  }
+  @media print{
+    body{background:#fff}
+    .topbar,.search,.back,.noresult{display:none !important}
+    .wrap{max-width:none;padding:0}
+    .panel{background:#fff;padding:0}
+    .topic{break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="icon-btn" href="index.html" aria-label="Kembali ke Keluarga Sultan">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m15 18-6-6 6-6"></path>
+      </svg>
+    </a>
+    <span class="tag">Keluarga Sultan</span>
+    <span class="tag plain">Panduan internal</span>
+  </div>
+
+  <header class="masthead" id="masthead">
+    <h1>Guideline</h1>
+    <p class="lede">Kumpulan panduan operasional untuk tim lapangan. Pilih topik untuk buka.</p>
+  </header>
+
+  <main id="listView">
+    <section class="panel">
+      <div class="search">
+        <input id="q" type="search" placeholder="Cari topik..." aria-label="Cari topik guideline" autocomplete="off" />
+        <button type="button" class="clear-btn" id="clear" hidden>Hapus</button>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="m20 20-3.5-3.5"></path>
+        </svg>
+      </div>
+
+      <div class="list-head">
+        <h2>Topik</h2>
+        <span class="count" id="count" aria-live="polite"></span>
+      </div>
+
+      <div class="list" id="list"></div>
+      <p class="noresult" id="noresult" hidden></p>
+    </section>
+  </main>
+
+  <main id="detailView" hidden>
+    <a class="back" href="#/">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m15 18-6-6 6-6"></path>
+      </svg>
+      Semua guideline
+    </a>
+    <header class="detail-head">
+      <span class="tag detail-num" id="detailNum"></span>
+      <h1 id="detailTitle" tabindex="-1"></h1>
+      <p class="detail-sub" id="detailSub"></p>
+    </header>
+    <div class="rule"></div>
+    <article class="materi" id="materi"></article>
+  </main>
+
+  <p class="site-foot">Keluarga Sultan, Sulawesi</p>
+</div>
+
+<template data-materi="handle-dc"><!-- Isi materi Handle DC di sini. --></template>
+<template data-materi="handle-igr"><!-- Isi materi Handle IGR di sini. --></template>
+<template data-materi="handle-hypermart"><!-- Isi materi Handle Hypermart di sini. --></template>
+<template data-materi="handle-lotte"><!-- Isi materi Handle Lotte Shopping di sini. --></template>
+<template data-materi="listing-toko"><!-- Isi materi Proses Listing ke Toko di sini. --></template>
+<template data-materi="claim-pbd"><!-- Isi materi Kelengkapan Claim Promosi dan PBD di sini. --></template>
+<template data-materi="lra-pum"><!-- Isi materi LRA dan PUM di sini. --></template>
+<template data-materi="display-gt"><!-- Isi materi Display GT di sini. --></template>
+<template data-materi="asset-area"><!-- Isi materi Serah Terima Asset Area di sini. --></template>
+<template data-materi="cmo-fsd"><!-- Isi materi CMO FSD di sini. --></template>
+<template data-materi="ancab"><!-- Isi materi ANCAB di sini. --></template>
+<template data-materi="rrp"><!-- Isi materi RRP di sini. --></template>
+<template data-materi="bcp"><!-- Isi materi Detail BCP di sini. --></template>
+<template data-materi="shi"><!-- Isi materi SHI di sini. --></template>
+<template data-materi="tbp"><!-- Isi materi TBP di sini. --></template>
+<template data-materi="matakar"><!-- Isi materi Matakar di sini. --></template>
+
+<script>
+const TOPICS = [
+  { id:'handle-dc', n:'01', title:'Handle DC', sub:'Service level dan B2B' },
+  { id:'handle-igr', n:'02', title:'Handle IGR', sub:'B2B, PO, dan operasional' },
+  { id:'handle-hypermart', n:'03', title:'Handle Hypermart', sub:'Account handling modern trade' },
+  { id:'handle-lotte', n:'04', title:'Handle Lotte Shopping', sub:'Account handling modern trade' },
+  { id:'listing-toko', n:'05', title:'Proses Listing ke Toko', sub:'Alur listing produk sampai aktif di toko' },
+  { id:'claim-pbd', n:'06', title:'Kelengkapan Claim Promosi dan PBD', sub:'Dokumen dan syarat claim' },
+  { id:'lra-pum', n:'07', title:'LRA dan PUM', sub:'Alur dan kelengkapan LRA serta PUM' },
+  { id:'display-gt', n:'08', title:'Display GT', sub:'Rak jemuran, display WOW, dan hanger: cara eksekusi dan pajang' },
+  { id:'asset-area', n:'09', title:'Serah Terima Asset Area', sub:'Dokumen yang diperlukan' },
+  { id:'cmo-fsd', n:'10', title:'CMO FSD', sub:'Penjelasan coloring warna' },
+  { id:'ancab', n:'11', title:'ANCAB', sub:'Antar cabang' },
+  { id:'rrp', n:'12', title:'RRP', sub:'3 budget: NKA, dist, pruning. Perlu cek dari PIC' },
+  { id:'bcp', n:'13', title:'Detail BCP', sub:'Untuk program' },
+  { id:'shi', n:'14', title:'SHI', sub:'About SHI' },
+  { id:'tbp', n:'15', title:'TBP', sub:'About TBP' },
+  { id:'matakar', n:'16', title:'Matakar', sub:'About Matakar' }
+];
+
+const listView = document.getElementById('listView');
+const detailView = document.getElementById('detailView');
+const masthead = document.getElementById('masthead');
+const listEl = document.getElementById('list');
+const countEl = document.getElementById('count');
+const qEl = document.getElementById('q');
+const clearEl = document.getElementById('clear');
+const noresultEl = document.getElementById('noresult');
+const detailNum = document.getElementById('detailNum');
+const detailTitle = document.getElementById('detailTitle');
+const detailSub = document.getElementById('detailSub');
+const materiEl = document.getElementById('materi');
+
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const chev = '<svg class="chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg>';
+
+function topicById(id){
+  return TOPICS.find(t => t.id === id) || null;
+}
+
+function filteredTopics(){
+  const q = qEl.value.trim().toLowerCase();
+  if (!q) return TOPICS;
+  return TOPICS.filter(t => (t.title + ' ' + t.sub).toLowerCase().includes(q));
+}
+
+function renderList(){
+  const items = filteredTopics();
+  listEl.innerHTML = items.map(t => `
+    <a class="topic" href="#/${t.id}">
+      <span class="num">${t.n}</span>
+      <span class="body">
+        <span class="title">${esc(t.title)}</span>
+        <span class="sub">${esc(t.sub)}</span>
+      </span>
+      ${chev}
+    </a>
+  `).join('');
+
+  const total = TOPICS.length;
+  countEl.textContent = items.length === total ? total + ' topik' : items.length + ' dari ' + total + ' topik';
+  clearEl.hidden = qEl.value.length === 0;
+
+  const hasQuery = qEl.value.trim().length > 0;
+  noresultEl.hidden = items.length > 0 || !hasQuery;
+  if (!noresultEl.hidden) {
+    noresultEl.innerHTML = 'Tidak ada topik yang cocok dengan <b></b>.';
+    noresultEl.querySelector('b').textContent = qEl.value.trim();
+  }
+}
+
+function templateHasContent(tpl){
+  return Array.from(tpl.content.childNodes).some(node => {
+    if (node.nodeType === 1) return true;
+    if (node.nodeType === 3) return node.textContent.trim().length > 0;
+    return false;
+  });
+}
+
+function emptyState(){
+  return `
+    <div class="empty">
+      <p class="empty-title">Materi belum diisi.</p>
+      <p class="empty-copy">Bagian ini masih kosong. Isi panduan bisa ditambahkan kapan saja.</p>
+      <a class="empty-link" href="#/">Kembali ke daftar topik</a>
+    </div>
+  `;
+}
+
+function showDetail(topic){
+  masthead.hidden = true;
+  listView.hidden = true;
+  detailView.hidden = false;
+  document.title = topic.title + ' - Guideline';
+
+  detailNum.textContent = 'Topik ' + topic.n;
+  detailTitle.textContent = topic.title;
+  detailSub.textContent = topic.sub;
+  materiEl.replaceChildren();
+
+  const tpl = document.querySelector('template[data-materi="' + topic.id + '"]');
+  if (tpl && templateHasContent(tpl)) {
+    materiEl.appendChild(tpl.content.cloneNode(true));
+  } else {
+    materiEl.innerHTML = emptyState();
+  }
+
+  window.scrollTo(0, 0);
+  detailTitle.focus({ preventScroll: true });
+}
+
+function showList(){
+  masthead.hidden = false;
+  detailView.hidden = true;
+  listView.hidden = false;
+  document.title = 'Guideline - Keluarga Sultan';
+  renderList();
+}
+
+function route(){
+  const match = location.hash.match(/^#\/(.+)$/);
+  const topic = match ? topicById(decodeURIComponent(match[1])) : null;
+  if (topic) showDetail(topic);
+  else showList();
+}
+
+qEl.addEventListener('input', renderList);
+clearEl.addEventListener('click', () => {
+  qEl.value = '';
+  renderList();
+  qEl.focus();
+});
+qEl.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && qEl.value) {
+    qEl.value = '';
+    renderList();
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !detailView.hidden) location.hash = '#/';
+});
+window.addEventListener('hashchange', route);
+
+route();
+</script>
+</body>
+</html>
