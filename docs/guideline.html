@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="theme-color" content="#FFFFFF" />
 <meta name="description" content="Panduan operasional tim lapangan Keluarga Sultan." />
-<meta name="guideline-ai-endpoint" content="" />
 <title>Guideline - Keluarga Sultan</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
@@ -93,6 +92,10 @@
   .topic .title{font-size:14.5px;font-weight:600;letter-spacing:-.015em;line-height:1.3}
   .topic .sub{color:var(--muted);font-size:12px;line-height:1.45}
   .topic .chev{flex:none;color:#8A8A8A}
+
+  .topic .snip{display:block;margin-top:3px;color:var(--muted);font-size:12px;line-height:1.5}
+  .topic mark{background:var(--green-soft-2);color:inherit;border-radius:3px;padding:0 1px}
+  .count .approx{color:#8A6100}
 
   .noresult{
     margin:0;padding:28px 20px;background:var(--card);border:1px solid var(--line);
@@ -217,26 +220,6 @@
   .lb-hint{margin:0;padding:0 14px 6px;color:#CFCFCF;font-size:11.5px;text-align:right}
   .materi figure.shot a{cursor:zoom-in}
 
-  /* Tanya AI */
-  .ai{margin-top:10px}
-  .ai-btn{
-    display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 18px;border:0;
-    border-radius:var(--pill);background:var(--green);color:var(--green-ink);font-family:inherit;font-size:13px;font-weight:700;
-    cursor:pointer;transition:background .2s var(--ease);
-  }
-  .ai-btn:hover{background:#A2D81B}
-  .ai-btn[disabled]{opacity:.6;cursor:progress}
-  .ai-answer{margin-top:10px;padding:14px;background:var(--card);border:1px solid var(--green-line);border-radius:var(--radius)}
-  .ai-answer .ai-q{margin:0 0 8px;color:var(--muted);font-size:12px}
-  .ai-answer .ai-text{margin:0;white-space:pre-wrap;font-size:14px;line-height:1.55}
-  .ai-answer .ai-src{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
-  .ai-answer .ai-src a{
-    display:inline-block;min-height:30px;padding:0 12px;line-height:30px;border-radius:var(--pill);
-    background:var(--green-soft);color:var(--green-ink);font-size:11.5px;font-weight:700;text-decoration:none;
-  }
-  .ai-answer .ai-warn{margin:10px 0 0;color:var(--muted);font-size:11.5px}
-  .ai-answer.err{border-color:#E7B4B4;background:#FFF7F7}
-
   .site-foot{margin:40px 2px 0;color:var(--muted);font-size:11.5px}
 
   :focus-visible{outline:2px solid var(--green-ink);outline-offset:3px}
@@ -280,17 +263,12 @@
   <main id="listView">
     <section class="panel">
       <div class="search">
-        <input id="q" type="search" placeholder="Cari topik..." aria-label="Cari topik guideline" autocomplete="off" />
+        <input id="q" type="search" placeholder="Cari topik atau isi materi..." aria-label="Cari topik guideline" autocomplete="off" />
         <button type="button" class="clear-btn" id="clear" hidden>Hapus</button>
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
           <circle cx="11" cy="11" r="7"></circle>
           <path d="m20 20-3.5-3.5"></path>
         </svg>
-      </div>
-
-      <div class="ai" id="aiBox" hidden>
-        <button type="button" class="ai-btn" id="aiBtn">&#10024; Tanya AI</button>
-        <div class="ai-answer" id="aiAnswer" hidden aria-live="polite"></div>
       </div>
 
       <div class="list-head">
@@ -455,33 +433,158 @@ function topicById(id){
   return TOPICS.find(t => t.id === id) || null;
 }
 
+/* ---- Pencarian pintar (tanpa AI, jalan di browser) ----
+   Mencari di judul, subjudul, dan ISI materi; toleran typo; paham padanan kata (stok = stock, IGR = Indogrosir). */
+const STOP = new Set(['yang','di','ke','dan','dari','untuk','apa','cara','bagaimana','gimana','itu','ini','atau','dengan','adalah','saya','mau','tolong','bisa','kah','nya','the','of']);
+const SYNONYM_GROUPS = [
+  ['stok','stock','persediaan'], ['igr','indogrosir','indo grosir'], ['po','purchase order','pesanan','order'],
+  ['retur','return','pengembalian'], ['kasir','cashier'], ['pajang','display','rak','pajangan'],
+  ['daftar','listing','registrasi'], ['harga','price','diskon','potongan'], ['toko','outlet','store','gerai'],
+  ['kantin','canteen'], ['gimmick','hadiah','reward','bonus'], ['pengajuan','ajuan','proposal','approval','persetujuan'],
+  ['program','promo','promosi'], ['bayar','pembayaran','payment','finance','tagihan'], ['member','anggota','keanggotaan'],
+  ['pasar','market','share'], ['jual','selling','penjualan','sell']
+];
+const norm = (str) => String(str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+
+function editDistance(a, b, max){
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    let rowMin = i;
+    for (let j = 1; j <= b.length; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (cur[j] < rowMin) rowMin = cur[j];
+    }
+    if (rowMin > max) return max + 1;
+    prev = cur;
+  }
+  return prev[b.length];
+}
+
+const SEARCH_INDEX = (() => {
+  return TOPICS.map(t => {
+    const tpl = document.querySelector('template[data-materi="' + t.id + '"]');
+    let body = '';
+    if (tpl) {
+      const frag = tpl.content;
+      const parts = [];
+      const walker = document.createTreeWalker(frag, NodeFilter.SHOW_TEXT);
+      while (walker.nextNode()) parts.push(walker.currentNode.nodeValue);
+      body = parts.join(' ') + ' ' + Array.from(frag.querySelectorAll('img')).map(i => i.alt).join(' ');
+    }
+    body = body.replace(/\s+/g, ' ').trim();
+    const fields = { title: norm(t.title), sub: norm(t.sub), body: norm(body) };
+    const words = {};
+    for (const k in fields) words[k] = new Set(fields[k].split(' ').filter(Boolean));
+    return { topic: t, body, bodyLower: body.toLowerCase(), words };
+  });
+})();
+
+function expandToken(tok){
+  const variants = new Set([tok]);
+  for (const g of SYNONYM_GROUPS) {
+    const gn = g.map(norm);
+    if (gn.includes(tok)) gn.forEach(x => x.split(' ').forEach(w => w && variants.add(w)));
+  }
+  return [...variants];
+}
+
+// skor satu kata kueri terhadap satu bidang; kembalikan {score, hit} (hit = kata di indeks yang cocok)
+function scoreWord(variant, wordSet, weight){
+  let best = { score: 0, hit: null };
+  const tol = variant.length >= 8 ? 2 : variant.length >= 5 ? 1 : 0;
+  for (const w of wordSet) {
+    let sc = 0;
+    if (w === variant) sc = 3;
+    else if (variant.length >= 3 && w.startsWith(variant)) sc = 2;
+    else if (variant.length >= 4 && w.length >= 4 && editDistance(variant, w, tol) <= tol && tol > 0) sc = 1.2;
+    if (sc * weight > best.score) best = { score: sc * weight, hit: w };
+  }
+  return best;
+}
+
+function searchTopics(rawQuery){
+  let toks = norm(rawQuery).split(' ').filter(Boolean);
+  const meaningful = toks.filter(t => !STOP.has(t));
+  if (meaningful.length) toks = meaningful;
+  if (!toks.length) return { items: SEARCH_INDEX.map(e => ({ topic: e.topic })), approx: false };
+
+  const evaluate = (entry) => {
+    let total = 0, matched = 0;
+    const hits = new Set();     // semua kata yang cocok (termasuk padanan)
+    const primary = new Set();  // kata yang cocok langsung dengan yang diketik
+    let inBody = false;
+    for (const tok of toks) {
+      let tokBest = 0;
+      for (const v of expandToken(tok)) {
+        for (const [field, weight] of [['title', 6], ['sub', 3], ['body', 1]]) {
+          const r = scoreWord(v, entry.words[field], weight);
+          if (r.score > tokBest) tokBest = r.score;
+          if (r.score > 0) {
+            hits.add(r.hit);
+            if (v === tok) primary.add(r.hit);
+            if (field === 'body') inBody = true;
+          }
+        }
+      }
+      if (tokBest > 0) { matched++; total += tokBest; }
+    }
+    return { entry, total, matched, hits, primary, inBody };
+  };
+
+  const all = SEARCH_INDEX.map(evaluate);
+  let res = all.filter(r => r.matched === toks.length);
+  let approx = false;
+  if (!res.length && toks.length > 1) {
+    res = all.filter(r => r.matched > 0 && r.matched >= Math.ceil(toks.length / 2));
+    approx = res.length > 0;
+  }
+  res.sort((a, b) => b.total - a.total || a.entry.topic.n.localeCompare(b.entry.topic.n));
+  return { items: res.map(r => ({ topic: r.entry.topic, snippet: makeSnippet(r.entry, r.primary.size ? r.primary : r.hits), inBody: r.inBody })), approx };
+}
+
+function makeSnippet(entry, hits){
+  if (!hits.size) return '';
+  const alt = [...hits].filter(Boolean).map(h => h.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  const m = new RegExp('(' + alt + ')', 'i').exec(entry.bodyLower);
+  if (!m) return '';
+  const start = Math.max(0, m.index - 55), end = Math.min(entry.body.length, m.index + m[0].length + 80);
+  const before = entry.body.slice(start, m.index), word = entry.body.slice(m.index, m.index + m[0].length), after = entry.body.slice(m.index + m[0].length, end);
+  return (start > 0 ? '...' : '') + esc(before) + '<mark>' + esc(word) + '</mark>' + esc(after) + (end < entry.body.length ? '...' : '');
+}
+
+let lastSearch = { items: [], approx: false };
 function filteredTopics(){
-  const q = qEl.value.trim().toLowerCase();
-  if (!q) return TOPICS;
-  return TOPICS.filter(t => (t.title + ' ' + t.sub).toLowerCase().includes(q));
+  const q = qEl.value.trim();
+  lastSearch = q ? searchTopics(q) : { items: TOPICS.map(t => ({ topic: t })), approx: false };
+  return lastSearch.items.map(i => i.topic);
 }
 
 function renderList(){
-  const items = filteredTopics();
-  listEl.innerHTML = items.map(t => `
+  filteredTopics();
+  const items = lastSearch.items;
+  listEl.innerHTML = items.map(({ topic: t, snippet }) => `
     <a class="topic" href="#/${t.id}">
       <span class="num">${t.n}</span>
       <span class="body">
         <span class="title">${esc(t.title)}</span>
         <span class="sub">${esc(t.sub)}</span>
+        ${snippet ? `<span class="snip">${snippet}</span>` : ''}
       </span>
       ${chev}
     </a>
   `).join('');
 
   const total = TOPICS.length;
-  countEl.textContent = items.length === total ? total + ' topik' : items.length + ' dari ' + total + ' topik';
+  countEl.innerHTML = (items.length === total ? total + ' topik' : items.length + ' dari ' + total + ' topik')
+    + (lastSearch.approx ? ' <span class="approx">(hasil mendekati)</span>' : '');
   clearEl.hidden = qEl.value.length === 0;
 
   const hasQuery = qEl.value.trim().length > 0;
   noresultEl.hidden = items.length > 0 || !hasQuery;
   if (!noresultEl.hidden) {
-    noresultEl.innerHTML = 'Tidak ada topik yang cocok dengan <b></b>.';
+    noresultEl.innerHTML = 'Tidak ada topik yang cocok dengan <b></b>. Coba kata lain.';
     noresultEl.querySelector('b').textContent = qEl.value.trim();
   }
 }
@@ -553,61 +656,6 @@ qEl.addEventListener('keydown', e => {
     renderList();
   }
 });
-/* Tanya AI: alamat server diisi di <meta name="guideline-ai-endpoint">. Kosong = fitur tersembunyi. */
-const aiBox = document.getElementById('aiBox');
-const aiBtn = document.getElementById('aiBtn');
-const aiAnswer = document.getElementById('aiAnswer');
-let aiAbort = null;
-function aiEndpoint(){
-  const m = document.querySelector('meta[name="guideline-ai-endpoint"]');
-  return m ? m.content.trim() : '';
-}
-function initAi(){
-  const on = !!aiEndpoint();
-  aiBox.hidden = !on;
-  qEl.placeholder = on ? 'Cari topik atau tulis pertanyaan...' : 'Cari topik...';
-}
-function showAi(html, isErr){
-  aiAnswer.className = 'ai-answer' + (isErr ? ' err' : '');
-  aiAnswer.innerHTML = html;
-  aiAnswer.hidden = false;
-}
-async function askAi(){
-  const endpoint = aiEndpoint();
-  const q = qEl.value.trim();
-  if (!endpoint) return;
-  if (q.length < 3) { showAi('<p class="ai-text">Tulis pertanyaanmu dulu di kolom cari, lalu tekan Tanya AI.</p>', true); return; }
-  if (aiAbort) aiAbort.abort();
-  aiAbort = new AbortController();
-  const timer = setTimeout(() => aiAbort.abort(), 30000);
-  aiBtn.disabled = true;
-  aiBtn.textContent = 'Mencari jawaban...';
-  showAi('<p class="ai-text">Sebentar, AI sedang membaca guideline...</p>');
-  try {
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: q }),
-      signal: aiAbort.signal
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || 'Gagal mendapat jawaban.');
-    const src = (data.sources || []).map(s => '<a href="#/' + encodeURIComponent(s.id) + '">' + esc(s.title) + '</a>').join('');
-    showAi('<p class="ai-q">Pertanyaan: ' + esc(q) + '</p><p class="ai-text">' + esc(data.answer) + '</p>'
-      + (src ? '<div class="ai-src">' + src + '</div>' : '')
-      + '<p class="ai-warn">Jawaban dibuat AI dari isi guideline dan bisa keliru. Cek materinya sebelum dipakai.</p>');
-  } catch (err) {
-    const msg = err && err.name === 'AbortError' ? 'Terlalu lama menunggu. Coba lagi.' : (err && err.message) || 'Gagal mendapat jawaban.';
-    showAi('<p class="ai-text">' + esc(msg) + '</p>', true);
-  } finally {
-    clearTimeout(timer);
-    aiBtn.disabled = false;
-    aiBtn.innerHTML = '&#10024; Tanya AI';
-  }
-}
-aiBtn.addEventListener('click', askAi);
-initAi();
-
 /* Pratinjau gambar (lightbox) */
 const lb = document.getElementById('lightbox');
 const lbImg = document.getElementById('lbImg');
