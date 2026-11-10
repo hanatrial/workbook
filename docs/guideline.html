@@ -139,6 +139,54 @@
   .materi th,.materi td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
   .materi th{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 
+
+  /* ---- Materi berformat: accordion bagian, kartu, alur langkah, catatan ---- */
+  .materi .lead{margin:0 0 16px;color:var(--muted);font-size:13.5px}
+  .materi details.sec{margin:0 0 10px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  .materi details.sec>summary{
+    list-style:none;display:flex;align-items:center;gap:12px;min-height:60px;padding:12px 14px;cursor:pointer;
+    transition:background .2s var(--ease);
+  }
+  .materi details.sec>summary::-webkit-details-marker{display:none}
+  .materi details.sec>summary:hover{background:#FCFEF7}
+  .materi details.sec[open]>summary{background:var(--green-soft);border-bottom:1px solid var(--green-line)}
+  .materi .sec-num{
+    flex:none;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;
+    border-radius:9px;background:var(--green-soft);color:var(--green-ink);font-size:12px;font-weight:700;
+  }
+  .materi details.sec[open] .sec-num{background:var(--green);}
+  .materi .sec-title{flex:1;min-width:0;font-size:15px;font-weight:700;letter-spacing:-.02em;line-height:1.3}
+  .materi .sec-title small{display:block;margin-top:2px;color:var(--muted);font-size:11.5px;font-weight:500;letter-spacing:0}
+  .materi .sec-chev{flex:none;color:var(--muted);transition:transform .2s var(--ease)}
+  .materi details.sec[open] .sec-chev{transform:rotate(180deg)}
+  .materi .sec-body{padding:6px 14px 14px}
+  .materi .sec-body h3{margin:18px 0 6px}
+  .materi .sec-body h3:first-child{margin-top:12px}
+  .materi .card{margin:10px 0;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+  .materi .card b.t{display:block;margin-bottom:4px;font-size:13.5px}
+  .materi .card p:last-child,.materi .card ul:last-child{margin-bottom:0}
+  .materi .flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:6px;margin:10px 0;padding:0;list-style:none}
+  .materi .flow li{
+    flex:1 1 130px;margin:0;padding:10px 12px;background:var(--green-soft);border:1px solid var(--green-line);
+    border-radius:10px;font-size:13px;line-height:1.4;counter-increment:fl;position:relative;
+  }
+  .materi .flow{counter-reset:fl}
+  .materi .flow li::before{
+    content:counter(fl);display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin-right:6px;
+    border-radius:50%;background:var(--green);color:var(--green-ink);font-size:11px;font-weight:700;
+  }
+  .materi .flow li b{display:block;margin-bottom:2px}
+  .materi .note{margin:12px 0;padding:11px 14px;border-left:3px solid var(--green);background:var(--green-soft);border-radius:0 10px 10px 0;font-size:13.5px}
+  .materi .note b.t{display:block;margin-bottom:3px;color:var(--green-ink);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+  .materi .note p:last-child,.materi .note ul:last-child{margin-bottom:0}
+  .materi .warn{border-left-color:#C98A12;background:#FFF7E3}
+  .materi .warn b.t{color:#7A5200}
+  .materi .tbl-wrap{overflow-x:auto;margin:10px 0}
+  .materi .tbl-wrap table{margin:0;min-width:480px}
+  .materi .pill{display:inline-block;padding:1px 9px;border-radius:var(--pill);background:var(--green-soft);color:var(--green-ink);font-size:11.5px;font-weight:700}
+  .materi .pill.y{background:#FFF1B8;color:#6B5400}
+  .materi .pill.r{background:#FBE0E0;color:#8A1C1C}
+
   .site-foot{margin:40px 2px 0;color:var(--muted);font-size:11.5px}
 
   :focus-visible{outline:2px solid var(--green-ink);outline-offset:3px}
@@ -219,7 +267,150 @@
 </div>
 
 <template data-materi="handle-dc"><!-- Isi materi Handle DC di sini. --></template>
-<template data-materi="handle-igr"><!-- Isi materi Handle IGR di sini. --></template>
+<template data-materi="handle-igr">
+<p class="lead">Ringkasan materi sharing handling Indogrosir. Berbasis pengalaman lapangan tim, jadi hasilnya bisa berbeda di area lain.</p>
+<details class="sec" open><summary><span class="sec-num">1</span><span class="sec-title">Struktur<small>Siapa memutuskan apa di Indogrosir</small></span><svg class="sec-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></summary><div class="sec-body"><h3>Store Indogrosir (area)</h3>
+<ul class="flow">
+<li><b>Store Man</b>Pimpinan toko</li>
+<li><b>Manager Toko</b>Member, Food, Non Food</li>
+<li><b>Supervisor</b>POP dan PO urgent</li>
+<li><b>Kepala Lorong</b>Placement SPG/MDS</li>
+<li><b>Anak Lorong</b>Men-display produk</li>
+</ul>
+<div class="card"><b class="t">Manager Toko (Food)</b>Deal promo, Big PO, dan item PKM 0.</div>
+<h3>HO Indomarco (area)</h3>
+<ul class="flow">
+<li><b>Head of Area</b></li>
+<li><b>Head Buyer</b></li>
+<li><b>Buyer (SPI &amp; IDG)</b>Deal event, set harga, program HO, listing lokal</li>
+</ul>
+<p>Store dan HO saling melapor dan berkoordinasi. Dengan memetakan siapa yang memutuskan apa, kita bisa menentukan strategi negosiasi yang tepat.</p>
+<div class="note warn"><b class="t">Catatan</b>Mekanisme koordinasi dan dealing bersifat dinamis dan bisa berbeda di tiap area, menyesuaikan kebutuhan operasional dan karakteristik area.</div>
+<h3>Jenis member Indogrosir</h3>
+<div class="tbl-wrap"><table>
+<tr><th>Kartu</th><th>Untuk siapa</th><th>Benefit</th></tr>
+<tr><td><b>Biru</b></td><td>Umum (end user)</td><td>Promo reguler berupa potongan harga atau hadiah langsung, atau poin IGR.</td></tr>
+<tr><td><b>Merah</b></td><td>Usaha retail (toko kelontong, P&amp;D, minimarket), koperasi, restoran/rumah makan, hotel, rumah sakit/apotek.</td><td>Harga khusus, potongan harga atau hadiah langsung, atau poin IGR.</td></tr>
+<tr><td><b>Platinum</b></td><td>Member merah dengan transaksi rata-rata Rp45-60 juta per bulan selama 6 bulan berturut-turut.</td><td>Sama dengan member merah, ditambah harga dan pelayanan khusus.</td></tr>
+</table></div>
+<div class="card"><b class="t">Syarat jadi member merah</b><ul>
+<li>Punya toko permanen dengan radius sekitar 10 km dari gerai Indogrosir.</li>
+<li>Menjual ke end user langsung.</li>
+<li>Menjual kebutuhan sehari-hari.</li></ul></div></div></details>
+<details class="sec"><summary><span class="sec-num">2</span><span class="sec-title">Operasional<small>Assortment, IGR Connect, dan pemakaian data</small></span><svg class="sec-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></summary><div class="sec-body"><h3>1. Assortment: pastikan SKU lengkap</h3>
+<p>Cek kondisi assortment di toko lewat <b>Checklist L&amp;O</b> (report di Report Portal Nutrifood).</p>
+<ul>
+<li><span class="pill y">Kuning</span> item yang pernah masuk, tapi belum pernah order dalam 1 tahun terakhir.</li>
+<li><span class="pill r">Merah</span> item wajib masuk, tapi belum order.</li>
+</ul>
+<div class="card"><b class="t">PLU masuk assortment tapi belum aktif</b><ul>
+<li><b>Via HO:</b> koordinasi dengan KAM.</li>
+<li><b>Via lokal:</b> negosiasi dengan Manager Toko atau Store Man.</li></ul></div>
+
+<h3>2. IGR Connect: data harian dari Indogrosir</h3>
+<p>Web B2B <b>igrconnect.com</b> dipakai untuk operasional harian: menghitung stock level, estimasi PO, service level, dan insight market share.</p>
+<div class="note warn"><b class="t">Akses</b><ul>
+<li>Minta username dan password ke KAM. Tidak dicantumkan di halaman ini.</li>
+<li>Akun tidak bisa login lebih dari 1 device dalam waktu yang bersamaan.</li>
+<li>Jangan sampai salah password. Salah 3 kali, akun harus direset oleh KAM.</li></ul></div>
+<div class="tbl-wrap"><table>
+<tr><th>Menu</th><th>Isi</th></tr>
+<tr><td>Purchase Order</td><td>Data PO nasional periode 1 bulan, status Active, Expired, dan Received.</td></tr>
+<tr><td>Purchase Receipt</td><td>Data BPB nasional selama 1 bulan.</td></tr>
+<tr><td>Stock</td><td>Report stock store, stock retur, dan stock out.</td></tr>
+<tr><td>Return Product</td><td>Nota retur yang terbit dalam 3 bulan terakhir.</td></tr>
+<tr><td>Finance</td><td>Tukar faktur dan pembayaran dalam 3 bulan terakhir.</td></tr>
+<tr><td>Service Level</td><td>Tingkat pemenuhan barang.</td></tr>
+<tr><td>Selling In</td><td>Nilai penerimaan barang dan retur.</td></tr>
+<tr><td>Selling Out</td><td>Nilai penjualan ke konsumen, keseluruhan maupun member merah.</td></tr>
+<tr><td>Performance Total Supplier</td><td>Grafik Selling In, Selling Out, Service Level, dan trend member.</td></tr>
+<tr><td>Market Share</td><td>Market share per kategori per brand dibanding kompetitor, tahun berjalan vs tahun sebelumnya, beserta pertumbuhannya.</td></tr>
+</table></div>
+
+<h3>3. Memakai data IGR Connect untuk operasional</h3>
+<div class="card"><b class="t">a. Availability: stock level dan estimasi order</b>
+<p>Gabungkan data <b>Selling Out</b> (rata-rata 3 bulan, AP3M) dengan <b>stock on hand</b> toko untuk mendapat stock level (%) per item, lalu hitung estimasi order ke buyer (berbasis data). Hasilnya biasanya dibagikan ke tim MDS untuk negosiasi PO dengan tim IGR.</p></div>
+<div class="card"><b class="t">b. Monitoring service level</b>
+<p>Dari data Service Level, cek item mana yang tidak terpenuhi. Lalu cek PO yang tidak terpenuhi di menu Purchasing Order. Jika stok sudah ready di provider/distributor, PIC bisa meminta PO pengganti ke SPV/Manager Indogrosir.</p>
+<ul>
+<li><b>Active:</b> PO masih aktif, tapi belum dilakukan pengiriman.</li>
+<li><b>Received:</b> PO sudah dilakukan BPB oleh pihak IGR.</li>
+<li><b>Expired:</b> PO sudah tidak aktif lagi.</li></ul></div>
+<div class="card"><b class="t">c. Insight market share</b>
+<p>Dipakai untuk mengestimasi selling out kompetitor dan melihat apakah kategori secara keseluruhan tumbuh. Kalau kita sendiri tidak tumbuh, cek ulang kembali AAM PP.</p></div></div></details>
+<details class="sec"><summary><span class="sec-num">3</span><span class="sec-title">Program<small>Sell out konsumen dan sell in outlet</small></span><svg class="sec-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></summary><div class="sec-body"><h3>Program Sell Out Konsumen</h3>
+<ul class="flow">
+<li><b>Email RKP</b>Dikirim tiap Jumat lewat email</li>
+<li><b>Program</b>Lihat sheet bulan berjalan</li>
+<li><b>Eksekusi</b>Cek kesesuaian program di outlet</li>
+</ul>
+<div class="note"><b class="t">Kalau tidak sesuai</b><ul>
+<li>RKP ada program, tapi tidak terealisasi di outlet: cek sistem outlet, lalu konfirmasi ke grup Indogrosir.</li>
+<li>RKP tidak ada program, tapi di outlet ada program berjalan: informasikan bahwa RKP belum update.</li></ul></div>
+
+<h3>Program Sell In Outlet</h3>
+<ul class="flow">
+<li><b>SK Program GT</b>8 Pack Get 1 Rcg, add disc 2% NS fokus</li>
+<li><b>Modifikasi</b>Sesuaikan program</li>
+<li><b>Monitoring</b>Update pencapaian</li>
+<li><b>Realisasi gimmick</b>PBD / PBN</li>
+</ul>
+<div class="card"><b class="t">Contoh SK 26186: 8 pack get 1 rcg</b>Beli 8 pack (minimal 6 varian), dapat 1 rcg. Kalau fokus per EC terlalu sulit direalisasi, fokus pada pencapaian 1 bulan.</div>
+<div class="card"><b class="t">Contoh SK 26146: add diskon 2%</b>Khusus 6 varian fokus. Kalau add diskon sulit direalisasi, fokus switching ke gimmick. Pastikan mekanisme program (gimmick produk dan diskon on PO).</div>
+<p>Program Sell In menyesuaikan SK Program GT, dan proses dealing bisa dilakukan mandiri di masing-masing cabang.</p>
+
+<h3>Strategi modifikasi program</h3>
+<div class="card"><b class="t">Semua program modifikasi memakai target</b>
+<p>PO eksisting IGR (matic) <b>→</b> target memaksa adanya PO manual <b>→</b> sell in IGR meningkat. Indogrosir terbiasa mengejar target.</p></div>
+<div class="card"><b class="t">Percepat realisasi gimmick (W1)</b>
+<p>Membangun kepercayaan <b>→</b> outlet segera mencairkan stok.</p></div>
+<div class="card"><b class="t">Besaran target dan realisasi</b>
+<p>Koordinasi dengan manager. Proses realisasi memakai PBD / PBN, bergantung pada coverage area.</p></div>
+<div class="card"><b class="t">Khusus SK Non Target (tingkat lebih lanjut)</b>
+<p>Mainkan psikologis orang toko. Misalnya toko sudah effort tapi gagal, momentumnya bisa dipakai untuk mencairkan gimmick.</p></div>
+<div class="card"><b class="t">Monitoring stok</b>
+<p>Pantau stok jual dan stok gimmick, segera koordinasi supaya dicairkan, lalu push untuk program bulan berikutnya.</p></div></div></details>
+<details class="sec"><summary><span class="sec-num">4</span><span class="sec-title">Inisiatif Area<small>Listing lokal, reward cashier, display, branding kantin</small></span><svg class="sec-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></summary><div class="sec-body"><p>Inisiatif area adalah aktivitas yang dikembangkan sendiri oleh tim area, di luar program HO, untuk mengoptimalkan peluang bisnis sesuai karakteristik wilayah masing-masing.</p>
+
+<h3>Listing lokal</h3>
+<p><b>Siapa yang memutuskan:</b> Buyer (SPI &amp; IDG).</p>
+<ul>
+<li>Beri data pendukung per area dan performance.</li>
+<li>Siapkan sample dan isi form pendaftaran produk baru.</li>
+<li>Cek planogram (ada atau tidak) lewat foto.</li>
+<li>Koordinasi dengan KAM.</li>
+</ul>
+<p>Data yang dipakai buyer untuk pengajuan ke HO: performance area, kontribusi area, dan kontribusi IDG per item NS.</p>
+
+<h3>Reward Cashier</h3>
+<div class="card"><b class="t">Latar belakang</b><ul>
+<li>Perlu inisiatif tambahan agar SO konsumen NS di IGR naik, saat kondisinya minus growth tapi stok over sekali.</li>
+<li>Meningkatkan peluang transaksi: setiap orang yang masuk outlet dan checkout ditawarkan oleh kasir.</li>
+<li>Meniru program yang sudah berhasil di RKA Sulawesi.</li></ul></div>
+<div class="note"><b class="t">Jalur dealing</b><ul>
+<li>Deal dengan SJM dan SM.</li>
+<li>Pastikan pos budget dan SKP dengan KAM.</li>
+<li>Pastikan proses payment pencairan insentif dengan Finance IGR area dan KAM.</li></ul></div>
+<div class="card"><b class="t">Contoh: reward kasir NS Jeruk Peras (Indogrosir Makassar, 25 Mei - 30 Juni 2025)</b><ul>
+<li>Kasir yang menjual 1 karton NS Jeruk Peras dapat reward, berlaku kelipatan. Kepala kasir dan JSM/MD juga punya reward dengan syarat penjualan minimal 120 karton.</li>
+<li>Syarat: reward kasir dicairkan jika kasir menjual minimal 3 karton. Wajib terpajang 1 pack NS Jeruk Peras dan 2 box TS Sweetener Classic 25s di setiap meja kasir.</li>
+<li>Ada hadiah mingguan (juara 1-5) dan hadiah akhir periode (juara 1-3) untuk penjualan terbanyak.</li>
+<li>Hasil: penjualan rata-rata per minggu naik sekitar 49% (16,3 ke 24 karton), cost ratio 4,7%.</li></ul>
+<p>Angka nominal rinci ada di materi aslinya. Cek lagi sebelum dipakai ulang.</p></div>
+
+<h3>Additional Display</h3>
+<ul>
+<li>Stok setelah promo biasanya stock level-nya cukup tinggi.</li>
+<li>Lebih baik ada additional display selain rak reguler.</li>
+<li>Harapannya mendominasi display dan meningkatkan sell out.</li>
+<li>Dealing dilakukan dengan SJM.</li></ul>
+
+<h3>Branding Kantin</h3>
+<ul>
+<li>Kontribusi item utama IGR biasanya dari ASO / JUPE.</li>
+<li>Ingin lebih mengenalkan varian NS lainnya.</li>
+<li>Kantin-kantin IGR dicoba untuk dibranding dan didisplay dengan varian lengkap NutriSari.</li></ul></div></details>
+</template>
 <template data-materi="handle-hypermart"><!-- Isi materi Handle Hypermart di sini. --></template>
 <template data-materi="handle-lotte"><!-- Isi materi Handle Lotte Shopping di sini. --></template>
 <template data-materi="listing-toko"><!-- Isi materi Proses Listing ke Toko di sini. --></template>
