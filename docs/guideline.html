@@ -204,6 +204,18 @@
   .materi .pill.y{background:#FFF1B8;color:#6B5400}
   .materi .pill.r{background:#FBE0E0;color:#8A1C1C}
 
+  /* Pratinjau gambar: tampil di halaman ini (bukan tab baru) supaya selalu bisa kembali */
+  .lightbox{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;background:rgba(15,15,15,.92)}
+  .lb-bar{flex:none;display:flex;justify-content:flex-end;padding:10px 12px}
+  .lb-close{
+    min-width:44px;min-height:44px;padding:0 18px;border:0;border-radius:var(--pill);
+    background:var(--green);color:var(--green-ink);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;
+  }
+  .lb-scroll{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;padding:0 12px 24px}
+  .lb-scroll img{display:block;width:max(100%,960px);max-width:none;height:auto;margin:0 auto;background:#fff;border-radius:8px}
+  .lb-hint{margin:0;padding:0 14px 6px;color:#CFCFCF;font-size:11.5px;text-align:right}
+  .materi figure.shot a{cursor:zoom-in}
+
   .site-foot{margin:40px 2px 0;color:var(--muted);font-size:11.5px}
 
   :focus-visible{outline:2px solid var(--green-ink);outline-offset:3px}
@@ -218,6 +230,7 @@
     *{transition:none !important}
   }
   @media print{
+    .lightbox{display:none !important}
     body{background:#fff}
     .topbar,.search,.back,.noresult{display:none !important}
     .wrap{max-width:none;padding:0}
@@ -281,6 +294,12 @@
   </main>
 
   <p class="site-foot">Keluarga Sultan, Sulawesi</p>
+</div>
+
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Pratinjau gambar" hidden>
+  <div class="lb-bar"><button type="button" class="lb-close" id="lbClose">Tutup</button></div>
+  <p class="lb-hint">Geser untuk melihat bagian lain. Ketuk Tutup untuk kembali.</p>
+  <div class="lb-scroll" id="lbScroll"><img id="lbImg" alt="" /></div>
 </div>
 
 <template data-materi="handle-dc"><!-- Isi materi Handle DC di sini. --></template>
@@ -508,8 +527,49 @@ qEl.addEventListener('keydown', e => {
     renderList();
   }
 });
+/* Pratinjau gambar (lightbox) */
+const lb = document.getElementById('lightbox');
+const lbImg = document.getElementById('lbImg');
+const lbScroll = document.getElementById('lbScroll');
+const lbCloseBtn = document.getElementById('lbClose');
+let lbOpen = false;
+let lbTrigger = null;
+function openLb(src, alt, trigger){
+  lbTrigger = trigger || null;
+  lbImg.src = src;
+  lbImg.alt = alt || '';
+  lb.hidden = false;
+  lbScroll.scrollTop = 0; lbScroll.scrollLeft = 0;
+  document.body.style.overflow = 'hidden';
+  history.pushState({ lb: 1 }, '', location.href);   // tombol Back di HP menutup pratinjau, bukan keluar halaman
+  lbOpen = true;
+  lbCloseBtn.focus();
+}
+function hideLb(){
+  lb.hidden = true;
+  lbOpen = false;
+  document.body.style.overflow = '';
+  lbImg.removeAttribute('src');
+  if (lbTrigger) lbTrigger.focus({ preventScroll: true });
+}
+function closeLb(){
+  if (!lbOpen) return;
+  if (history.state && history.state.lb) history.back();
+  else hideLb();
+}
+materiEl.addEventListener('click', e => {
+  const a = e.target.closest('figure.shot a');
+  if (!a) return;
+  e.preventDefault();
+  const img = a.querySelector('img');
+  openLb(a.getAttribute('href'), img ? img.alt : '', a);
+});
+lbCloseBtn.addEventListener('click', closeLb);
+window.addEventListener('popstate', () => { if (lbOpen) hideLb(); });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && !detailView.hidden) location.hash = '#/';
+  if (e.key !== 'Escape') return;
+  if (lbOpen) { closeLb(); return; }
+  if (!detailView.hidden) location.hash = '#/';
 });
 window.addEventListener('hashchange', route);
 
