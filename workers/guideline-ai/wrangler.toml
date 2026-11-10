@@ -1,0 +1,16 @@
+name = "guideline-ai"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+# Variabel non-rahasia. Kunci API JANGAN ditaruh di sini, pasang lewat:
+#   npx wrangler secret put LLM_API_KEY
+[vars]
+ALLOWED_ORIGIN = "https://hanatrial.github.io"
+GUIDELINE_URL = "https://hanatrial.github.io/workbook/guideline.html"
+
+# Penyedia AI (format OpenAI-compatible: POST {LLM_BASE_URL}/chat/completions).
+# ISI dari dokumentasi OpenCode, saya belum bisa memverifikasinya dari sini:
+LLM_BASE_URL = "https://opencode.ai/zen/v1"
+LLM_MODEL = ""          # contoh: nama model dari daftar OpenCode; kosong = server menolak permintaan
+# Kirim gambar slide ke AI? Hanya "true" bila modelnya mendukung gambar (vision).
+USE_IMAGES = "false"

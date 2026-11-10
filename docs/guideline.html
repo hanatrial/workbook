@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="theme-color" content="#FFFFFF" />
 <meta name="description" content="Panduan operasional tim lapangan Keluarga Sultan." />
+<meta name="guideline-ai-endpoint" content="" />
 <title>Guideline - Keluarga Sultan</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
@@ -216,6 +217,26 @@
   .lb-hint{margin:0;padding:0 14px 6px;color:#CFCFCF;font-size:11.5px;text-align:right}
   .materi figure.shot a{cursor:zoom-in}
 
+  /* Tanya AI */
+  .ai{margin-top:10px}
+  .ai-btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 18px;border:0;
+    border-radius:var(--pill);background:var(--green);color:var(--green-ink);font-family:inherit;font-size:13px;font-weight:700;
+    cursor:pointer;transition:background .2s var(--ease);
+  }
+  .ai-btn:hover{background:#A2D81B}
+  .ai-btn[disabled]{opacity:.6;cursor:progress}
+  .ai-answer{margin-top:10px;padding:14px;background:var(--card);border:1px solid var(--green-line);border-radius:var(--radius)}
+  .ai-answer .ai-q{margin:0 0 8px;color:var(--muted);font-size:12px}
+  .ai-answer .ai-text{margin:0;white-space:pre-wrap;font-size:14px;line-height:1.55}
+  .ai-answer .ai-src{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+  .ai-answer .ai-src a{
+    display:inline-block;min-height:30px;padding:0 12px;line-height:30px;border-radius:var(--pill);
+    background:var(--green-soft);color:var(--green-ink);font-size:11.5px;font-weight:700;text-decoration:none;
+  }
+  .ai-answer .ai-warn{margin:10px 0 0;color:var(--muted);font-size:11.5px}
+  .ai-answer.err{border-color:#E7B4B4;background:#FFF7F7}
+
   .site-foot{margin:40px 2px 0;color:var(--muted);font-size:11.5px}
 
   :focus-visible{outline:2px solid var(--green-ink);outline-offset:3px}
@@ -265,6 +286,11 @@
           <circle cx="11" cy="11" r="7"></circle>
           <path d="m20 20-3.5-3.5"></path>
         </svg>
+      </div>
+
+      <div class="ai" id="aiBox" hidden>
+        <button type="button" class="ai-btn" id="aiBtn">&#10024; Tanya AI</button>
+        <div class="ai-answer" id="aiAnswer" hidden aria-live="polite"></div>
       </div>
 
       <div class="list-head">
@@ -527,6 +553,61 @@ qEl.addEventListener('keydown', e => {
     renderList();
   }
 });
+/* Tanya AI: alamat server diisi di <meta name="guideline-ai-endpoint">. Kosong = fitur tersembunyi. */
+const aiBox = document.getElementById('aiBox');
+const aiBtn = document.getElementById('aiBtn');
+const aiAnswer = document.getElementById('aiAnswer');
+let aiAbort = null;
+function aiEndpoint(){
+  const m = document.querySelector('meta[name="guideline-ai-endpoint"]');
+  return m ? m.content.trim() : '';
+}
+function initAi(){
+  const on = !!aiEndpoint();
+  aiBox.hidden = !on;
+  qEl.placeholder = on ? 'Cari topik atau tulis pertanyaan...' : 'Cari topik...';
+}
+function showAi(html, isErr){
+  aiAnswer.className = 'ai-answer' + (isErr ? ' err' : '');
+  aiAnswer.innerHTML = html;
+  aiAnswer.hidden = false;
+}
+async function askAi(){
+  const endpoint = aiEndpoint();
+  const q = qEl.value.trim();
+  if (!endpoint) return;
+  if (q.length < 3) { showAi('<p class="ai-text">Tulis pertanyaanmu dulu di kolom cari, lalu tekan Tanya AI.</p>', true); return; }
+  if (aiAbort) aiAbort.abort();
+  aiAbort = new AbortController();
+  const timer = setTimeout(() => aiAbort.abort(), 30000);
+  aiBtn.disabled = true;
+  aiBtn.textContent = 'Mencari jawaban...';
+  showAi('<p class="ai-text">Sebentar, AI sedang membaca guideline...</p>');
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q }),
+      signal: aiAbort.signal
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Gagal mendapat jawaban.');
+    const src = (data.sources || []).map(s => '<a href="#/' + encodeURIComponent(s.id) + '">' + esc(s.title) + '</a>').join('');
+    showAi('<p class="ai-q">Pertanyaan: ' + esc(q) + '</p><p class="ai-text">' + esc(data.answer) + '</p>'
+      + (src ? '<div class="ai-src">' + src + '</div>' : '')
+      + '<p class="ai-warn">Jawaban dibuat AI dari isi guideline dan bisa keliru. Cek materinya sebelum dipakai.</p>');
+  } catch (err) {
+    const msg = err && err.name === 'AbortError' ? 'Terlalu lama menunggu. Coba lagi.' : (err && err.message) || 'Gagal mendapat jawaban.';
+    showAi('<p class="ai-text">' + esc(msg) + '</p>', true);
+  } finally {
+    clearTimeout(timer);
+    aiBtn.disabled = false;
+    aiBtn.innerHTML = '&#10024; Tanya AI';
+  }
+}
+aiBtn.addEventListener('click', askAi);
+initAi();
+
 /* Pratinjau gambar (lightbox) */
 const lb = document.getElementById('lightbox');
 const lbImg = document.getElementById('lbImg');

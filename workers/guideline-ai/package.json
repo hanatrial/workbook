@@ -1,0 +1,14 @@
+{
+  "name": "guideline-ai",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Pencarian AI untuk halaman Guideline Keluarga Sultan (Cloudflare Worker, API OpenAI-compatible seperti OpenCode)",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
