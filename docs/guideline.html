@@ -211,6 +211,11 @@
   .materi .email .eb{padding:14px;font-size:13.5px}
   .materi .email .eb p{margin:0 0 10px}
   .materi .email .eb p:last-child{margin-bottom:0}
+  /* chip warna untuk legenda */
+  .materi .chipc{display:inline-block;min-width:88px;padding:4px 12px;border-radius:6px;font-weight:700;font-size:12.5px;text-align:center;border:1px solid rgba(0,0,0,.12)}
+  .materi .chipc.merah{background:#F8CBCB}.materi .chipc.kuning{background:#FFEFA8}.materi .chipc.abu{background:#D9D9D9}
+  .materi .chipc.biru{background:#CFE0F5}.materi .chipc.ungu{background:#DCCDF0}.materi .chipc.orange{background:#FBD2A6}
+  .materi .chipc.nofill{background:#fff;border:1px dashed #BBB;font-weight:600;color:#666}
   .materi .note{margin:12px 0;padding:11px 14px;border-left:3px solid var(--green);background:var(--green-soft);border-radius:0 10px 10px 0;font-size:13.5px}
   .materi .note b.t{display:block;margin-bottom:3px;color:var(--green-ink);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
   .materi .note p:last-child,.materi .note ul:last-child{margin-bottom:0}
@@ -431,7 +436,33 @@
 <div class="note warn"><b class="t">Catatan</b><p>Foto contoh Spanduk Toko dan Spanduk Operator menyusul.</p></div></div></details>
 </template>
 <template data-materi="asset-area"><!-- Isi materi Serah Terima Asset Area di sini. --></template>
-<template data-materi="cmo-fsd"><!-- Isi materi CMO FSD di sini. --></template>
+<template data-materi="cmo-fsd">
+<p class="lead">Penjelasan warna item pada template CMO, kesalahan yang sering terjadi, dan cara mengeceknya.</p>
+<details class="sec" open><summary><span class="sec-num">1</span><span class="sec-title">Arti Warna<small>Warna di template dan Ver Area</small></span><svg class="sec-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></summary><div class="sec-body"><h3>Warna di template CMO</h3>
+<div class="tbl-wrap fit"><table><tr><th>Warna</th><th>Arti</th></tr><tr><td><span class="chipc merah">Merah</span></td><td>Tidak prefer diorder</td></tr><tr><td><span class="chipc kuning">Kuning</span></td><td>Toko pilihan saja</td></tr><tr><td><span class="chipc abu">Abu</span></td><td>Toko DC saja</td></tr><tr><td><span class="chipc biru">Biru</span></td><td>DC ALL</td></tr></table></div>
+<h3>Warna Ver Area</h3>
+<p>Warna ini berbeda di tiap cabang, sesuai versi area masing-masing.</p>
+<div class="tbl-wrap fit"><table><tr><th>Ver Area</th><th>Warna</th></tr><tr><td>AMAN</td><td><span class="chipc nofill">Tanpa warna</span></td></tr><tr><td>SELECTED DISTRIBUTION</td><td><span class="chipc ungu">Ungu</span></td></tr><tr><td>PRUNING LOKAL</td><td><span class="chipc merah">Merah</span></td></tr><tr><td>IGR</td><td><span class="chipc orange">Orange</span></td></tr><tr><td>RKA ONLY</td><td><span class="chipc kuning">Kuning</span></td></tr></table></div></div></details>
+<details class="sec"><summary><span class="sec-num">2</span><span class="sec-title">Kesalahan Umum<small>Enam kesalahan beserta contoh</small></span><svg class="sec-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></summary><div class="sec-body"><p>Kesalahan yang sering terjadi saat mengisi dan mengirim CMO:</p>
+<div class="card"><b class="t">1. Item PRUNNING masih ada Plan Jual</b><p>Item berstatus PRUNNING seharusnya tidak punya Plan Jual.</p><figure class="shot"><a href="guideline-img/cmo-contoh-prunning-plan.jpg" target="_blank" rel="noopener"><img src="guideline-img/cmo-contoh-prunning-plan.jpg" alt="Contoh item PRUNNING yang masih ada Plan Jual" loading="lazy" decoding="async"></a><figcaption>Contoh: item PRUNNING (merah) masih berisi Plan Jual. Ketuk gambar untuk memperbesar.</figcaption></figure></div>
+<div class="card"><b class="t">2. Rumus Plan Jual masih nyangkut</b><p>Kolom masih berisi rumus, belum di-paste as value, dan belum di-recheck manual.</p></div>
+<div class="card"><b class="t">3. Item PRUNNING masih di-order</b><p>Item berstatus PRUNNING tidak boleh ada di Suggest CMO Principal.</p><figure class="shot"><a href="guideline-img/cmo-contoh-prunning-order.jpg" target="_blank" rel="noopener"><img src="guideline-img/cmo-contoh-prunning-order.jpg" alt="Contoh item PRUNNING yang masih di-order" loading="lazy" decoding="async"></a><figcaption>Contoh: item PRUNNING masih ada Suggest CMO Principal.</figcaption></figure></div>
+<div class="card"><b class="t">4. Stok masih banyak, order kecil</b><p>Stok masih banyak (lebih dari 20 ctn) dan AP3M masih aman, tapi tetap order 1-2 ctn. Lebih baik tidak usah di-order.</p><figure class="shot"><a href="guideline-img/cmo-contoh-stok-banyak.jpg" target="_blank" rel="noopener"><img src="guideline-img/cmo-contoh-stok-banyak.jpg" alt="Contoh stok banyak tapi tetap order 1-2 ctn" loading="lazy" decoding="async"></a><figcaption>Contoh: SOH besar dan AP3M aman, tapi masih ada order 1-2 ctn.</figcaption></figure></div>
+<div class="card"><b class="t">5. Rumus Suggest CMO Principal masih nyangkut</b><p>Rumus masih ada di kolom Suggest CMO Principal, artinya belum di-recheck.</p><figure class="shot"><a href="guideline-img/cmo-contoh-rumus-nyangkut.jpg" target="_blank" rel="noopener"><img src="guideline-img/cmo-contoh-rumus-nyangkut.jpg" alt="Contoh rumus yang masih nyangkut di Suggest CMO Principal" loading="lazy" decoding="async"></a><figcaption>Contoh: sel Suggest CMO Principal masih berisi rumus.</figcaption></figure></div>
+<div class="card"><b class="t">6. Item merah masih di-order</b><p>Item berwarna merah (tidak prefer diorder) masih di-order. Kalau item itu memang pilihan di area tersebut, order sedikit saja.</p><figure class="shot"><a href="guideline-img/cmo-contoh-merah-order.jpg" target="_blank" rel="noopener"><img src="guideline-img/cmo-contoh-merah-order.jpg" alt="Contoh item merah yang masih di-order" loading="lazy" decoding="async"></a><figcaption>Contoh: beberapa item merah masih ada Suggest CMO Principal.</figcaption></figure></div>
+</div></details>
+<details class="sec"><summary><span class="sec-num">3</span><span class="sec-title">Kapan Order, Kapan Tidak<small>Pertimbangan stok dan penjualan</small></span><svg class="sec-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></summary><div class="sec-body"><div class="card"><b class="t">Jangan order kalau tidak menambah apa-apa</b>Lihat stok on hand dan intransit. Kalau stok masih banyak dan order hanya 1 ctn yang menambah sekitar 1-2 hari DOI, itu tidak perlu di-order.</div>
+<div class="card"><b class="t">Naikkan stok kalau penjualan melonjak</b>Kalau ada peningkatan yang cukup drastis di MTD atau AP1M, pertimbangkan untuk menaikkan stok supaya barang tidak kosong.</div>
+<p>Tambahan hari dari sebuah order = ctn order ÷ (AP3M ÷ 30).</p></div></details>
+<details class="sec"><summary><span class="sec-num">4</span><span class="sec-title">Checklist Sebelum Kirim CMO<small>Cek ini sebelum mengirim</small></span><svg class="sec-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></summary><div class="sec-body"><ul class="check">
+<li>Filter <b>Status Item = PRUNNING</b>: Plan Jual dan Suggest CMO Principal harus kosong.</li>
+<li>Cek <b>item merah</b>: jangan di-order, kecuali item pilihan area (order sedikit saja).</li>
+<li>Cek <b>stok dan intransit</b>: jangan order yang hanya menambah 1-2 hari DOI.</li>
+<li>Cek <b>MTD dan AP1M</b>: kalau melonjak, pertimbangkan naikkan stok.</li>
+<li><b>Paste as value</b> semua kolom yang masih berisi rumus.</li>
+<li><b>Recheck manual</b> setelah paste.</li>
+</ul></div></details>
+</template>
 <template data-materi="ancab">
 <p class="lead"><b>Ancab (antar cabang)</b> adalah pengiriman barang dari masing-masing cabang untuk menyesuaikan stok distributor yang ada di cabang tersebut. Berikut cabang yang terlibat per wilayah dan alurnya.</p>
 <details class="sec" open><summary><span class="sec-num">1</span><span class="sec-title">Wilayah Ancab<small>Sulsel, Sulteng, dan Utara</small></span><svg class="sec-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></summary><div class="sec-body"><h3>Ancab LK Sulsel</h3>
