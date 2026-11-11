@@ -247,6 +247,91 @@
   .lb-hint{margin:0;padding:0 14px 6px;color:#CFCFCF;font-size:11.5px;text-align:right}
   .materi figure.shot a{cursor:zoom-in}
 
+
+  /* ===== Rombak v2: huruf lebih besar, ikon, warna per jenis isi =====
+     hijau = alur, kuning = peringatan, merah = aturan wajib, biru = contoh, ungu = angka/diskon */
+  .back{font-size:15px}
+  .tag{font-size:12.5px}
+  .count{font-size:13.5px}
+  .topic{gap:14px;min-height:88px;padding:14px}
+  .topic .ico{flex:none;width:54px;height:54px;border-radius:15px;background:var(--green-soft);color:var(--green-ink);display:inline-flex;align-items:center;justify-content:center}
+  .topic .ico svg{width:29px;height:29px}
+  .topic .no{display:block;margin-bottom:1px;color:var(--green-ink);font-size:12px;font-weight:700;letter-spacing:.06em}
+  .topic .title{font-size:17.5px;line-height:1.25}
+  .topic .sub{font-size:14.5px}
+  .topic .snip{font-size:14px}
+  .grp-head{margin-top:20px}
+  .grp-head h3{font-size:17px}
+  .grp-head h3 small{font-size:13.5px}
+  .grp-head .n{font-size:13px}
+  .detail-top{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .detail-ico{flex:none;width:60px;height:60px;border-radius:18px;background:var(--green);color:var(--green-ink);display:inline-flex;align-items:center;justify-content:center}
+  .detail-ico svg{width:34px;height:34px}
+  .detail-num{margin-bottom:0}
+  .detail-head h1{font-size:clamp(31px,8.5vw,40px)}
+  .detail-sub{font-size:16px}
+
+  .materi{max-width:none;font-size:16.5px;line-height:1.55}
+  .materi h3{font-size:19px;margin:24px 0 8px}
+  .materi h4{font-size:15.5px;margin:16px 0 4px}
+  .materi .lead{font-size:16.5px;line-height:1.5}
+  .materi li{margin-bottom:8px}
+  .materi table{font-size:16px}
+  .materi th{font-size:12.5px}
+  .materi .tbl-wrap.compact th,.materi .tbl-wrap.compact td{padding:9px 6px;font-size:14px}
+  .materi .tbl-wrap.compact th{font-size:11.5px}
+
+  /* judul bagian: ikon besar, tanpa subjudul kecil */
+  .materi details.sec>summary{min-height:72px;gap:14px;padding:14px 16px}
+  .materi .sec-ico{width:48px;height:48px;border-radius:14px;font-size:25px;background:var(--green-soft)}
+  .materi details.sec[open] .sec-ico{background:var(--green)}
+  .materi .sec-title{font-size:19px;line-height:1.25}
+  .materi .sec-body{padding:8px 16px 18px}
+
+  /* hijau: alur */
+  .materi .flow li{font-size:16.5px;padding:13px 15px}
+  .materi .flow li b{font-size:17px}
+  /* checklist */
+  .materi ul.check li{font-size:16.5px;padding:13px 14px 13px 46px}
+  .materi ul.check li::before{left:15px;width:18px;height:18px;margin-top:-9px}
+  /* kartu */
+  .materi .card{font-size:16.5px;padding:15px 16px}
+  .materi .card b.t{font-size:17px;margin-bottom:6px}
+  .materi .card.warn{background:#FFF6D9;border-color:#EBD27A}
+  .materi .card.do{background:#EAF7EC;border-color:#A9D9B1}
+  .materi .card.dont{background:#FDECEC;border-color:#EDB0B0}
+  /* kotak catatan per jenis */
+  .materi .note{font-size:16.5px;padding:15px 16px;border-left-width:6px}
+  .materi .note b.t{font-size:13px;letter-spacing:.05em}
+  .materi .note.must{border-left-color:#D14343;background:#FDECEC}.materi .note.must b.t{color:#8E1F1F}
+  .materi .note.warn{border-left-color:#E0A000;background:#FFF6D9}.materi .note.warn b.t{color:#7A5200}
+  .materi .note.num{border-left-color:#7B5FE0;background:#F0ECFD}.materi .note.num b.t{color:#4A2FA8}
+  .materi .note.info{border-left-color:#2F8FE5;background:#EAF3FD}.materi .note.info b.t{color:#1D5C9C}
+  /* biru: contoh */
+  .materi figure.shot img{border:2px solid #BBD4F5}
+  .materi figure.shot figcaption{font-size:14px;color:#1D5C9C}
+  .materi figure.shot figcaption::before{content:'\1F50E  '}
+  .materi .email{border:2px solid #BBD4F5}
+  .materi .email .eh{background:#EAF3FD;font-size:15px}
+  .materi .email .eb{font-size:16px}
+  /* ungu: angka dan diskon */
+  .materi .tbl-wrap.numtbl table th{background:#F0ECFD;color:#4A2FA8}
+  .materi .tbl-wrap.numtbl table td{border-bottom-color:#DDD3F7}
+  .materi .tbl-wrap.numtbl table td:first-child{font-weight:700;color:#4A2FA8}
+  .materi .chipc{font-size:14.5px;min-width:100px;padding:6px 12px}
+  /* kartu bernomor: pernyataan survey */
+  .materi .qcard{display:flex;gap:14px;margin:12px 0;padding:15px;background:#EAF3FD;border:1px solid #BBD4F5;border-radius:14px}
+  .materi .qcard .qn{flex:none;width:40px;height:40px;border-radius:50%;background:#2F8FE5;color:#fff;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .materi .qcard>div>b{display:block;font-size:17.5px;line-height:1.3}
+  .materi .qcard .yn{display:inline-block;margin-left:8px;padding:1px 9px;border-radius:999px;background:#fff;color:#1D5C9C;font-size:12.5px;font-weight:700;vertical-align:2px}
+  .materi .qcard p{margin:6px 0 0;font-size:16px}
+  /* kartu segmen */
+  .materi .segcard{display:flex;align-items:flex-start;gap:12px;margin:10px 0;padding:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px}
+  .materi .segcard .code{flex:none;min-width:52px;padding:5px 8px;border-radius:10px;background:#F0ECFD;color:#4A2FA8;font-size:14px;font-weight:700;text-align:center}
+  .materi .segcard>div>b{display:block;font-size:17px}
+  .materi .segcard p{margin:4px 0 0;font-size:15.5px;color:var(--muted)}
+  .materi .segcard .top{flex:none;padding:4px 10px;border-radius:999px;background:#fff;border:1px solid var(--line);font-size:13px;font-weight:700;white-space:nowrap}
+
   .site-foot{margin:40px 2px 0;color:var(--muted);font-size:11.5px}
 
   :focus-visible{outline:2px solid var(--green-ink);outline-offset:3px}
@@ -306,7 +391,7 @@
       Semua guideline
     </a>
     <header class="detail-head">
-      <span class="tag detail-num" id="detailNum"></span>
+      <div class="detail-top"><span class="detail-ico" id="detailIco"></span><span class="tag detail-num" id="detailNum"></span></div>
       <h1 id="detailTitle" tabindex="-1"></h1>
       <p class="detail-sub" id="detailSub"></p>
     </header>
@@ -580,7 +665,16 @@
 <div class="tbl-wrap fit compact"><table><tr><th>Segmen</th><th>NS Polos</th><th>Hilo Polos</th><th>Cash disc</th></tr><tr><td><b>LO1</b> List Outlet Principal 1</td><td>2,5%</td><td>3,5%</td><td>0,5%</td></tr><tr><td><b>LO2</b> List Outlet Principal 2</td><td>2,0%</td><td>3,0%</td><td>0,5%</td></tr></table></div>
 <h3>Segmen GT</h3>
 <p>Cash disc 0% dan Produk MT 0% untuk segmen di bawah ini. Diskon NS Polos dan Hilo Polos mengikuti strata di atas.</p>
-<div class="tbl-wrap fit compact"><table><tr><th>Segmen</th><th>Keterangan</th><th>TOP (hari)</th></tr><tr><td><b>WS</b> Wholesaler</td><td>60% pelanggan retail, penjualan > Rp 1 juta per bulan</td><td>0/12</td></tr><tr><td><b>SWS</b> Semi Wholesaler</td><td>60% pelanggan end user, penjualan > Rp 500 rb per bulan</td><td>0/12</td></tr><tr><td><b>RTL</b> Retail</td><td>Toko GT selain WS dengan penjualan > Rp 50.000 per bulan</td><td>0/12</td></tr><tr><td><b>SPC</b> Sport Centre / Gym</td><td>Fasilitas olahraga yang menjual makanan dan minuman</td><td>0/12</td></tr><tr><td><b>MTR</b> Motoris</td><td>Motoris Principal untuk membantu distribusi dan demand</td><td>0/12</td></tr><tr><td><b>HRK</b> Hotel / Restoran / Kantin</td><td>Hotel, restoran, dan kantin untuk makanan dan minuman</td><td>0/12</td></tr><tr><td><b>APT</b> Apotek / Toko Obat</td><td>Toko yang menjual obat dan alat kesehatan</td><td>0/12</td></tr><tr><td><b>CFB</b> Cosmetic / Fashion / Baby &amp; Kids</td><td>Toko kosmetik dan/atau pakaian dan/atau peralatan bayi/anak</td><td>0/12</td></tr><tr><td><b>RTK</b> Retail Kecil</td><td>Toko dengan omzet kurang dari Rp 50 rb, sehingga TOP wajib 0 hari</td><td>0</td></tr></table></div>
+<div class="segcard"><span class="code">WS</span><div><b>Wholesaler</b><p>60% pelanggan retail, penjualan lebih dari Rp 1 juta per bulan</p></div><span class="top">TOP 0/12</span></div>
+<div class="segcard"><span class="code">SWS</span><div><b>Semi Wholesaler</b><p>60% pelanggan end user, penjualan lebih dari Rp 500 rb per bulan</p></div><span class="top">TOP 0/12</span></div>
+<div class="segcard"><span class="code">RTL</span><div><b>Retail</b><p>Toko GT selain WS dengan penjualan lebih dari Rp 50.000 per bulan</p></div><span class="top">TOP 0/12</span></div>
+<div class="segcard"><span class="code">SPC</span><div><b>Sport Centre / Gym</b><p>Fasilitas olahraga yang menjual makanan dan minuman</p></div><span class="top">TOP 0/12</span></div>
+<div class="segcard"><span class="code">MTR</span><div><b>Motoris</b><p>Motoris Principal untuk membantu distribusi dan demand</p></div><span class="top">TOP 0/12</span></div>
+<div class="segcard"><span class="code">HRK</span><div><b>Hotel / Restoran / Kantin</b><p>Hotel, restoran, dan kantin untuk makanan dan minuman</p></div><span class="top">TOP 0/12</span></div>
+<div class="segcard"><span class="code">APT</span><div><b>Apotek / Toko Obat</b><p>Toko yang menjual obat dan alat kesehatan</p></div><span class="top">TOP 0/12</span></div>
+<div class="segcard"><span class="code">CFB</span><div><b>Cosmetic / Fashion / Baby &amp; Kids</b><p>Toko kosmetik dan/atau pakaian dan/atau peralatan bayi/anak</p></div><span class="top">TOP 0/12</span></div>
+<div class="segcard"><span class="code">RTK</span><div><b>Retail Kecil</b><p>Toko dengan omzet kurang dari Rp 50 rb, sehingga TOP wajib 0 hari</p></div><span class="top">TOP 0</span></div>
+
 <h3>Diskon MT</h3>
 <div class="tbl-wrap fit compact"><table><tr><th>Segmen</th><th>NS Polos</th><th>Hilo Polos</th><th>Produk MT</th></tr><tr><td><b>LSM</b> SM (COC min 4 aktif, TOP 0/21)</td><td>2,0%</td><td>2,0%</td><td>2,0%</td></tr><tr><td><b>LMM</b> MM (COC 2-4 aktif, TOP 0/12)</td><td>2,0%</td><td>2,0%</td><td>2,0%</td></tr><tr><td><b>MTL</b> MTI List (sesuai usulan Principal, TOP 0/21)</td><td>2,5%</td><td>3,5%</td><td>2,0%</td></tr><tr><td><b>IDM</b> Indomaret (DC supply store Indomaret)</td><td>0,0%</td><td>0,0%</td><td>Disc Reg 2%, DC Fee 3%, B2B 0,5%</td></tr><tr><td><b>IDG</b> Indogrosir (Indogrosir only)</td><td>Disc Reg 2%, B2B 0,5%</td><td>Disc Reg 2%, B2B 0,5%</td><td>Disc Reg 2%</td></tr><tr><td><b>IGM</b> Indogrosir - Indomaret (Indogrosir supply ke store Indomaret)</td><td>0,0%</td><td>0,0%</td><td>Disc Reg, DC Fee, B2B sesuai label SKU</td></tr><tr><td><b>SAT</b> Alfamart (DC supply store Alfamart)</td><td>0,0%</td><td>0,0%</td><td>Disc Reg 2%, DC Fee 2,5%, B2B 0,5%</td></tr><tr><td><b>AMD</b> Alfamidi</td><td>2,0%</td><td>2,0%</td><td>DC Fee 2,25%, B2B 0,5%</td></tr><tr><td><b>MTH</b> Hypermart</td><td>0,0%</td><td>0,0%</td><td>Disc Reg 2%</td></tr><tr><td><b>LTS</b> Lotte Grosir (TOP 0/12)</td><td>1,5%</td><td>1,5%</td><td>Disc Reg 2%</td></tr><tr><td><b>ECM</b> E-commerce</td><td>0,0%</td><td>0,0%</td><td>0,0%</td></tr></table></div></div></details>
 <details class="sec"><summary><span class="sec-num">2</span><span class="sec-title">Survey WAR di SFA BCP<small>6 pernyataan, SOP pengisian, dan Do dan Dont foto</small></span><svg class="sec-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></summary><div class="sec-body"><p>Mulai November 2026 ada survey khusus pajangan atau display NFI di SFA. Ada <b>6 pernyataan wajib</b> yang diisi salesman setiap kunjungan ke toko.</p>
@@ -591,7 +685,13 @@
 <li><b>Isi satu per satu</b>Isi pernyataan survey satu per satu</li>
 </ul>
 <h3>6 pernyataan wajib</h3>
-<div class="tbl-wrap fit"><table><tr><th>#</th><th>Pernyataan</th><th>Cara mengisi</th></tr><tr><td>1</td><td><b>Apakah ada Rak NutriSari</b> (ya/tidak)</td><td>Isi <b>YA</b> jika ada rak NFI, lalu foto rak dengan jelas (dari ujung atas ke bawah). Isi <b>TIDAK</b> jika tidak ada.</td></tr><tr><td>2</td><td><b>Apakah pajangan mempunyai min 3 hanger</b> (ya/tidak)</td><td>Isi <b>YA</b> jika ada pajangan 3 hanger NFI atau hanger toko. Isi <b>TIDAK</b> jika tidak ada atau tidak sesuai.</td></tr><tr><td>3</td><td><b>Min 15 tier per baris</b> (ya/tidak)</td><td>Isi <b>YA</b> jika ada pajangan setara 15 tier di toko. Isi <b>TIDAK</b> jika tidak ada atau tidak sesuai.</td></tr><tr><td>4</td><td><b>Foto pajangan</b></td><td>Foto pajangan NFI, baik rak, hanger, gondola, cooler, dan lain-lain.</td></tr><tr><td>5</td><td><b>Jumlah SKU NS</b></td><td>Isi berapa banyak SKU NutriSari yang ada di toko.</td></tr><tr><td>6</td><td><b>Jumlah SKU Hilo</b></td><td>Isi berapa banyak SKU Hilo yang ada di toko.</td></tr></table></div>
+<div class="qcard"><span class="qn">1</span><div><b>Apakah ada Rak NutriSari<span class="yn">YA / TIDAK</span></b><p>Isi <b>YA</b> jika ada rak NFI, lalu foto rak dengan jelas (dari ujung atas ke bawah). Isi <b>TIDAK</b> jika tidak ada.</p></div></div>
+<div class="qcard"><span class="qn">2</span><div><b>Apakah pajangan punya min 3 hanger<span class="yn">YA / TIDAK</span></b><p>Isi <b>YA</b> jika ada pajangan 3 hanger NFI atau hanger toko. Isi <b>TIDAK</b> jika tidak ada atau tidak sesuai.</p></div></div>
+<div class="qcard"><span class="qn">3</span><div><b>Min 15 tier per baris<span class="yn">YA / TIDAK</span></b><p>Isi <b>YA</b> jika ada pajangan setara 15 tier di toko. Isi <b>TIDAK</b> jika tidak ada atau tidak sesuai.</p></div></div>
+<div class="qcard"><span class="qn">4</span><div><b>Foto pajangan<span class="yn">FOTO</span></b><p>Foto pajangan NFI, baik rak, hanger, gondola, cooler, dan lain-lain.</p></div></div>
+<div class="qcard"><span class="qn">5</span><div><b>Jumlah SKU NS<span class="yn">ANGKA</span></b><p>Isi berapa banyak SKU NutriSari yang ada di toko.</p></div></div>
+<div class="qcard"><span class="qn">6</span><div><b>Jumlah SKU Hilo<span class="yn">ANGKA</span></b><p>Isi berapa banyak SKU Hilo yang ada di toko.</p></div></div>
+
 <h3>SOP pengisian</h3>
 <ul class="flow linear">
 <li><b>Cek display</b>Lakukan pengecekan display berdasarkan kondisi aktual di toko</li>
@@ -759,6 +859,7 @@ const qEl = document.getElementById('q');
 const clearEl = document.getElementById('clear');
 const noresultEl = document.getElementById('noresult');
 const detailNum = document.getElementById('detailNum');
+const detailIco = document.getElementById('detailIco');
 const detailTitle = document.getElementById('detailTitle');
 const detailSub = document.getElementById('detailSub');
 const materiEl = document.getElementById('materi');
@@ -898,11 +999,88 @@ function filteredTopics(){
   return lastSearch.items.map(i => i.topic);
 }
 
+
+/* ---- Ikon topik (garis) ---- */
+const SV = (inner) => '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
+const ICONS = {
+  'handle-dc': SV('<path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>'),
+  'handle-igr': SV('<path d="M3 10l2-6h14l2 6"/><path d="M4 10v10h16V10"/><path d="M9 20v-6h6v6"/>'),
+  'handle-hypermart': SV('<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11l2-8H6"/>'),
+  'handle-lotte': SV('<path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>'),
+  'listing-toko': SV('<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4h6v3H9z"/><path d="M9 11h6M9 15h6"/>'),
+  'claim-pbd': SV('<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>'),
+  'lra-pum': SV('<rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18"/><circle cx="16.5" cy="14.5" r="1.2"/>'),
+  'display-gt': SV('<rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/>'),
+  'asset-area': SV('<path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>'),
+  'cmo-fsd': SV('<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/>'),
+  'ancab': SV('<path d="M4 8h14l-3-3M20 16H6l3 3"/>'),
+  'rrp': SV('<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>'),
+  'bcp': SV('<rect x="5" y="3" width="14" height="18" rx="1"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2"/>'),
+  'shi': SV('<rect x="4" y="9" width="10" height="12" rx="1"/><rect x="10" y="3" width="10" height="18" rx="1"/><path d="M13 7h4M13 11h4M13 15h4"/>'),
+  'tbp': SV('<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>'),
+  'matakar': SV('<path d="M3 21V9l9-5 9 5v12"/><rect x="8" y="12" width="8" height="9"/>'),
+  'pengembangan-gt': SV('<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>')
+};
+
+/* ---- Penghias isi: ikon bagian (emoji) dan warna per jenis isi ---- */
+const SEC_ICONS = [
+  [/sebelum dealing/i,'\u{1F50E}'],[/doi/i,'\u{1F4CA}'],[/checklist/i,'✅'],[/maintenance/i,'\u{1F6E0}️'],[/susunan/i,'\u{1F9E9}'],
+  [/survey/i,'\u{1F4CB}'],[/notes untuk program/i,'\u{1F4DD}'],[/notes/i,'\u{1F4DD}'],[/barang bonus/i,'\u{1F381}'],
+  [/discount|diskon|strata/i,'\u{1F3F7}️'],[/spanduk/i,'\u{1F6A9}'],[/hanger/i,'\u{1F455}'],[/rak/i,'\u{1F964}'],
+  [/struktur administrasi/i,'\u{1F5C2}️'],[/struktur operasional|operasional/i,'⚙️'],[/struktur/i,'\u{1F3E2}'],
+  [/wilayah/i,'\u{1F5FA}️'],[/alur/i,'\u{1F504}'],[/email/i,'\u{1F4E7}'],[/saran/i,'\u{1F4A1}'],[/warna/i,'\u{1F3A8}'],
+  [/kesalahan/i,'⚠️'],[/kapan order/i,'⏱️'],[/budget/i,'\u{1F4B0}'],[/koordinasi|peran/i,'\u{1F91D}'],
+  [/sistem rrp/i,'\u{1F501}'],[/cmo/i,'\u{1F9FE}'],[/insentif|btd/i,'\u{1F4B5}'],[/inisiatif/i,'\u{1F4A1}'],[/program/i,'\u{1F3AF}']
+];
+function secIcon(title){
+  for (const [re, ic] of SEC_ICONS) if (re.test(title)) return ic;
+  return '\u{1F4CC}';
+}
+function noteKind(t, body){
+  t = t.toLowerCase();
+  if (/wajib/.test(t)) return ['must', '❗'];
+  if (/aturan/.test(t)) return /hanya|wajib|harus|tidak boleh/i.test(body || '') ? ['must', '❗'] : ['info', '\u{1F4CF}'];
+  if (/hati|catatan|kalau di bawah/.test(t)) return ['warn', '⚠️'];
+  if (/investasi/.test(t)) return ['num', '\u{1F4B0}'];
+  return ['info', '\u{1F4AC}'];
+}
+function decorateMateri(root){
+  root.querySelectorAll('details.sec').forEach(d => {
+    const sum = d.querySelector('summary');
+    const num = sum.querySelector('.sec-num');
+    const ttl = sum.querySelector('.sec-title');
+    if (!ttl) return;
+    const small = ttl.querySelector('small');
+    if (small) small.remove();
+    const title = ttl.textContent.trim();
+    if (num) { num.textContent = secIcon(title); num.classList.add('sec-ico'); }
+    d.dataset.kind = title;
+    if (/kesalahan/i.test(title)) d.querySelectorAll('.card').forEach(c => c.classList.add('warn'));
+    if (/discount|diskon|strata/i.test(title)) d.querySelectorAll('.tbl-wrap').forEach(w => w.classList.add('numtbl'));
+  });
+  root.querySelectorAll('.note').forEach(n => {
+    const t = n.querySelector('b.t');
+    if (!t) return;
+    const [kind, emoji] = noteKind(t.textContent, n.textContent);
+    n.classList.remove('warn');
+    n.classList.add(kind);
+    if (!t.dataset.done) { t.textContent = emoji + '  ' + t.textContent; t.dataset.done = '1'; }
+  });
+  root.querySelectorAll('.card').forEach(c => {
+    const t = c.querySelector('b.t');
+    if (!t) return;
+    const x = t.textContent.trim();
+    if (x === 'Do') { c.classList.add('do'); t.textContent = '✅  Do'; }
+    else if (x === "Don't") { c.classList.add('dont'); t.textContent = '❌  Don\'t'; }
+  });
+}
+
 function topicCard(t, snippet, showGrp){
   return `
     <a class="topic" href="#/${t.id}">
-      <span class="num">${t.n}</span>
+      <span class="ico">${ICONS[t.id] || ''}</span>
       <span class="body">
+        <span class="no">${t.n}</span>
         <span class="title">${esc(t.title)}${showGrp ? `<span class="grp-pill">${esc(t.grp)}</span>` : ''}</span>
         <span class="sub">${esc(t.sub)}</span>
         ${snippet ? `<span class="snip">${snippet}</span>` : ''}
@@ -966,6 +1144,7 @@ function showDetail(topic){
   document.title = topic.title + ' - Guideline';
 
   detailNum.textContent = 'Topik ' + topic.n + ' · ' + topic.grp;
+  detailIco.innerHTML = ICONS[topic.id] || '';
   detailTitle.textContent = topic.title;
   detailSub.textContent = topic.sub;
   materiEl.replaceChildren();
@@ -973,6 +1152,7 @@ function showDetail(topic){
   const tpl = document.querySelector('template[data-materi="' + topic.id + '"]');
   if (tpl && templateHasContent(tpl)) {
     materiEl.appendChild(tpl.content.cloneNode(true));
+    decorateMateri(materiEl);
   } else {
     materiEl.innerHTML = emptyState();
   }
